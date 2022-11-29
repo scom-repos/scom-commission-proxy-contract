@@ -1,0 +1,35 @@
+{
+    "name": "@ijstech/commission-proxy",
+    "version": "0.1.0",
+    "main": "lib/index.js",
+    "types": "types/index.d.ts",
+    "dependencies": {
+        "@ijstech/eth-contract": "^0.1.4"
+    },
+    "devDependencies": {
+        "@openzeppelin/contracts": "4.3.2",
+        "@ijstech/cli": "^0.1.23",
+        "@ijstech/compiler": "^0.1.15",
+        "@ijstech/eth-contract": "^0.1.5",
+        "@ijstech/eth-wallet": "^0.1.27",
+        "@openswap/sdk": "0.1.11",
+        "@scom/contract-deployer": "^0.1.5",
+        "@scom/dapp": "^0.1.6",
+        "@types/mocha": "9.1.1",
+        "@types/node": "18.8.4",
+        "ganache": "7.5.0",
+        "mocha": "10.0.0",
+        "ts-node": "10.9.1",
+        "typescript": "4.8.4"
+    },
+    "scripts": {
+        "build": "rm -rf lib && rm -rf dist && rm -rf types && npm run build:contracts && npm run build:lib && npm run build:dist && npm run build:deployer",
+        "build:contracts": "rm -rf src/contracts && sol2ts solconfig.json",
+        "build:testContracts": "sol2ts test/solconfig.json",
+        "build:deployer": "rm -rf deployer && npx @ijstech/cli bundle deployer",
+        "build:dist": "npx @ijstech/compiler",
+        "build:lib": "tsc",
+        "deployer": "npx @ijstech/cli serve 8080 deployer",
+        "test": "mocha --exit --require ts-node/register --timeout 1000000 ./test/*.test.ts"
+    }
+}
