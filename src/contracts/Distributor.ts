@@ -23,10 +23,32 @@ export class Distributor extends _Contract{
             _event: event
         };
     }
+    parseClaimEvent(receipt: TransactionReceipt): Distributor.ClaimEvent[]{
+        return this.parseEvents(receipt, "Claim").map(e=>this.decodeClaimEvent(e));
+    }
+    decodeClaimEvent(event: Event): Distributor.ClaimEvent{
+        let result = event.data;
+        return {
+            from: result.from,
+            token: result.token,
+            amount: new BigNumber(result.amount),
+            _event: event
+        };
+    }
     addCommissions: {
         (params: IAddCommissionsParams, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt>;
         call: (params: IAddCommissionsParams, options?: number|BigNumber|TransactionOptions) => Promise<void>;
         txData: (params: IAddCommissionsParams, options?: number|BigNumber|TransactionOptions) => Promise<string>;
+    }
+    claim: {
+        (token:string, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (token:string, options?: TransactionOptions) => Promise<void>;
+        txData: (token:string, options?: TransactionOptions) => Promise<string>;
+    }
+    claimMultiple: {
+        (tokens:string[], options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (tokens:string[], options?: TransactionOptions) => Promise<void>;
+        txData: (tokens:string[], options?: TransactionOptions) => Promise<string>;
     }
     distributions: {
         (params: IDistributionsParams, options?: TransactionOptions): Promise<BigNumber>;
@@ -63,8 +85,41 @@ export class Distributor extends _Contract{
             call:addCommissions_call
             , txData:addCommissions_txData
         });
+        let claim_send = async (token:string, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('claim',[token],options);
+            return result;
+        }
+        let claim_call = async (token:string, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('claim',[token],options);
+            return;
+        }
+        let claim_txData = async (token:string, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('claim',[token],options);
+            return result;
+        }
+        this.claim = Object.assign(claim_send, {
+            call:claim_call
+            , txData:claim_txData
+        });
+        let claimMultiple_send = async (tokens:string[], options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('claimMultiple',[tokens],options);
+            return result;
+        }
+        let claimMultiple_call = async (tokens:string[], options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('claimMultiple',[tokens],options);
+            return;
+        }
+        let claimMultiple_txData = async (tokens:string[], options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('claimMultiple',[tokens],options);
+            return result;
+        }
+        this.claimMultiple = Object.assign(claimMultiple_send, {
+            call:claimMultiple_call
+            , txData:claimMultiple_txData
+        });
     }
 }
 export module Distributor{
     export interface AddCommissionEvent {to:string,token:string,amount:BigNumber,_event:Event}
+    export interface ClaimEvent {from:string,token:string,amount:BigNumber,_event:Event}
 }
