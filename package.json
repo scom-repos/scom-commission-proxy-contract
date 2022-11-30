@@ -29,6 +29,7 @@
         "build:deployer": "rm -rf deployer && npx @ijstech/cli bundle deployer",
         "build:dist": "npx @ijstech/compiler",
         "build:lib": "tsc",
+        "build:openswap": "cd node_modules/@openswap/sdk/ && sed -i \"s/\\\"outputObjects\\\": \\\"bytecode\\\",/\\\"outputOptions\\\": {\\\"txData\\\":true},/\" solidity.config.json && npm run build:contracts && ../../.bin/tsc",
         "deployer": "npx @ijstech/cli serve 8080 deployer",
         "test": "mocha --exit --require ts-node/register --timeout 1000000 ./test/*.test.ts"
     }
