@@ -148,6 +148,8 @@ describe('proxy', function() {
     let lp1: string;
     let lp2: string;    
     let trader: string;
+    let referrer1: string;
+    let referrer2: string;
 
     before(async function(){
         accounts = Config.networks[0].accounts.map(e=>e.address);
@@ -166,6 +168,8 @@ describe('proxy', function() {
         lp1 = accounts[5];
         lp2 = accounts[6];
         trader = accounts[7];
+        referrer1 = accounts[3];
+        referrer2 = accounts[4];
 
         wallet.defaultAccount = admin;
     });
@@ -401,16 +405,22 @@ describe('proxy', function() {
             Address[chainName].dependent.busdUsdOracle = busdUsdOracle.address;
         }
     });
-    it('proxy', async function(){
+    let proxy: Contracts.Proxy;
+    let distributor: Contracts.Distributor;
+    it('deploy', async function(){
         let result = await deploy(wallet);
 
-        let proxy = new Contracts.Proxy(wallet, result.proxy);
-        let distributor = new Contracts.Distributor(wallet, result.distributor);
+        proxy = new Contracts.Proxy(wallet, result.proxy);
+        distributor = new Contracts.Distributor(wallet, result.distributor);
+    });
+
+    it('token to token', async function(){
 
         let amountIn = 1000
         let decimals = await busd.decimals;
         let amountInWei = Utils.toDecimals(amountIn, decimals);
         await busd.mint({address:trader, amount:amountIn * 2});
+
         wallet.defaultAccount = trader;
         let now = parseInt((await wallet.getBlock()).timestamp.toString());
 
@@ -418,18 +428,18 @@ describe('proxy', function() {
         // await oswapContracts.router.swapExactTokensForTokens({
         //     amountIn: amountInWei,
         //     amountOutMin: 0,
-        //     deadline: now + 1000,
         //     path:[busd.address,cake.address],
-        //     to: trader
+        //     to: trader,
+        //     deadline: now + 1000
         // });
         // print(await cake.balanceOf(trader));
 
         let data = await oswapContracts.router.swapExactTokensForTokens.txData({
             amountIn: amountInWei,
             amountOutMin: 0,
-            deadline: now + 1000,
             path:[busd.address,cake.address],
-            to: proxy.address // trader
+            to: proxy.address, // trader
+            deadline: now + 1000
         });
         print(data);
 
@@ -440,8 +450,8 @@ describe('proxy', function() {
                 amount: Utils.toDecimals(amountIn + 10 + 15, decimals),
                 directTransfer: false,
                 commissions: [
-                    {to: accounts[3], amount: Utils.toDecimals(10, decimals)},
-                    {to: accounts[4], amount: Utils.toDecimals(15, decimals)}
+                    {to: referrer1, amount: Utils.toDecimals(10, decimals)},
+                    {to: referrer2, amount: Utils.toDecimals(15, decimals)}
                 ]
             }
         ];
@@ -454,7 +464,78 @@ describe('proxy', function() {
         print(proxy.parseTransferForwardEvent(receipt));
         print(proxy.parseTransferBackEvent(receipt));
         print(distributor.parseAddCommissionEvent(receipt));
-        print(await cake.balanceOf(trader));
-        // cake = 83.326389467544371302 
+        let balance = await cake.balanceOf(trader);
+        assert.strictEqual(balance.toFixed(), "83.326389467544371302");
+
+        wallet.defaultAccount = referrer1;
+        balance = await distributor.distributions({param1:referrer1, param2:busd.address});
+        assert.strictEqual(balance.toFixed(), "10000000000000000000");
+
+        await distributor.claim(busd.address);
+        balance = await busd.balanceOf(referrer1); 
+        assert.strictEqual(balance.toFixed(), "10");
+
+    });
+
+    it('ETH to token', async function(){
+
+        let amountIn = 10
+        let decimals = 18;
+        let amountInWei = Utils.toDecimals(amountIn, decimals);
+
+        wallet.defaultAccount = trader;
+        let now = parseInt((await wallet.getBlock()).timestamp.toString());
+
+        // await oswapContracts.router.swapExactETHForTokens({
+        //     // amountIn: amountInWei,
+        //     amountOutMin: 0,
+        //     path:[busd.address,weth.address],
+        //     to: trader,
+        //     deadline: now + 1000
+        // }, amountInWei);
+        // print(await cake.balanceOf(trader));
+
+        let data = await oswapContracts.router.swapExactETHForTokens.txData({
+            // amountIn: amountInWei,
+            amountOutMin: 0,
+            path:[weth.address,busd.address],
+            to: proxy.address, // trader
+            deadline: now + 1000
+        }, amountInWei);
+        print(data);
+
+        let target = oswapContracts.router.address;
+        let tokensIn = [
+            {
+                token: Utils.nullAddress,
+                amount: Utils.toDecimals(amountIn + 0.10 + 0.15, decimals),
+                directTransfer: false,
+                commissions: [
+                    {to: referrer1, amount: Utils.toDecimals(0.10, decimals)},
+                    {to: referrer2, amount: Utils.toDecimals(0.15, decimals)}
+                ]
+            }
+        ];
+        let to = trader;
+        let tokensOut = [busd.address];
+
+        let receipt = await proxy.proxyCall({target,tokensIn,to,tokensOut,data}, Utils.toDecimals(amountIn + 0.10 + 0.15, decimals));
+        print(receipt);
+        print(proxy.parseTransferForwardEvent(receipt));
+        print(proxy.parseTransferBackEvent(receipt));
+        print(distributor.parseAddCommissionEvent(receipt));
+        let balance = await busd.balanceOf(trader);
+        print(balance);
+        // assert.strictEqual(balance.toFixed(), "3960.396039603960396039");
+
+        wallet.defaultAccount = referrer1;
+        balance = await distributor.distributions({param1:referrer1, param2:Utils.nullAddress});
+        print(balance);
+        assert.strictEqual(balance.toFixed(), "100000000000000000");
+
+        await distributor.claim(Utils.nullAddress);
+        balance = await wallet.balanceOf(referrer1); 
+        print(balance);
+        assert.strictEqual(balance.toFixed(), "10000.099798232"); // 10000 + 0.1 - gas fee
     });
 });
