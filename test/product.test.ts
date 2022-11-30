@@ -110,13 +110,21 @@ describe('proxy', function() {
     let productInfo: Product.Contacts.ProductInfo;
     let product1155: Product.Contacts.Product1155;
     let productId: BigNumber;
+    let productId2: BigNumber;
     before('Setup Proeuct', async function(){
         let result = await Product.deploy(wallet, Product.DefaultDeployOptions);
         productInfo = new Product.Contracts.ProductInfo(wallet, result.productInfo);
         product1155 = new Product.Contracts.Product1155(wallet, result.product1155);
-        let receipt = await productInfo.newProduct({ipfsCid:"", quantity:100, price: Utils.toDecimals(20), token:busd.address});
+
+        //token
+        let receipt = await productInfo.newProduct({ipfsCid:"", quantity:100, price: Utils.toDecimals(25), token:busd.address});
         let event = productInfo.parseNewProductEvent(receipt)[0];// {productId:BigNumber,owner:string,_event:Event}
         productId = event.productId;
+
+        // ETH
+        receipt = await productInfo.newProduct({ipfsCid:"", quantity:100, price: Utils.toDecimals(0.25), token:Utils.nullAddress});
+        event = productInfo.parseNewProductEvent(receipt)[0];// {productId:BigNumber,owner:string,_event:Event}
+        productId2 = event.productId;
     });
 
     let proxy: Contracts.Proxy;
@@ -139,10 +147,10 @@ describe('proxy', function() {
         wallet.defaultAccount = trader;
 
         // await busd.approve({spender:productInfo.address, amount:decimals});
-        // let receipt = await productInfo.buy({productId:productId, quantity:10, to:trader});
+        // let receipt = await productInfo.buy({productId:productId, quantity:4, to:trader});
         // print(receipt);
 
-        let data = await productInfo.buy.txData({productId:productId, quantity:5, to:trader});
+        let data = await productInfo.buy.txData({productId:productId, quantity:4, to:trader});
         print(data);
 
         let target = productInfo.address;
@@ -169,7 +177,7 @@ describe('proxy', function() {
         balance = await busd.balanceOf(trader);
         assert.strictEqual(balance.toFixed(), "897.5"); // 1000 - 100 - 1.0 - 1.5
         balance = await product1155.balanceOf({account:trader, id:1});
-        assert.strictEqual(balance.toFixed(), "5");
+        assert.strictEqual(balance.toFixed(), "4");
 
         wallet.defaultAccount = referrer1;
         balance = await distributor.distributions({param1:referrer1, param2:busd.address});
@@ -178,5 +186,46 @@ describe('proxy', function() {
         await distributor.claim(busd.address);
         balance = await busd.balanceOf(referrer1);
         assert.strictEqual(balance.toFixed(), "1");
+    });
+
+    it('ETH', async function(){
+        let decimals = 18;
+        let amountIn = 1;
+        let amountInWei = Utils.toDecimals(amountIn, decimals);
+
+        wallet.defaultAccount = trader;
+
+        // let receipt = await productInfo.buyEth({productId:productId2, quantity:4, to:trader}, amountInWei);
+        // print(receipt);
+
+        let data = await productInfo.buyEth.txData({productId:productId2, quantity:4, to:trader}, amountInWei);
+        print(data);
+
+        let target = productInfo.address;
+        let commissions = [
+            {to: referrer1, amount: Utils.toDecimals(0.010, decimals)},
+            {to: referrer2, amount: Utils.toDecimals(0.015, decimals)}
+        ];
+
+        let receipt = await proxy.ethIn({target,commissions,data}, Utils.toDecimals(amountIn + 0.010 + 0.015));
+        print(receipt);
+        print(proxy.parseTransferForwardEvent(receipt));
+        print(distributor.parseAddCommissionEvent(receipt));
+        print(product1155.parseTransferSingleEvent(receipt));
+
+        let balance: BigNumber;
+        balance = await wallet.balanceOf(trader);
+        print(balance)
+        assert.strictEqual(balance.toFixed(), "9998.974037456"); // 10000 - 1 - 0.010 - 0.015 - gas
+        balance = await product1155.balanceOf({account:trader, id:2});
+        assert.strictEqual(balance.toFixed(), "4");
+
+        wallet.defaultAccount = referrer1;
+        balance = await distributor.distributions({param1:referrer1, param2:Utils.nullAddress});
+        assert.strictEqual(balance.toFixed(), "10000000000000000");
+
+        await distributor.claim(Utils.nullAddress);
+        balance = await wallet.balanceOf(referrer1);
+        assert.strictEqual(balance.toFixed(), "10000.009798232"); // 10000 + 0.010 - gas
     });
 });
