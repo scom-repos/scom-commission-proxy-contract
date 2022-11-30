@@ -15,11 +15,13 @@
         "@openswap/sdk": "0.1.11",
         "@scom/contract-deployer": "^0.1.5",
         "@scom/dapp": "^0.1.6",
+        "@scom/product-contract": "file:./node_modules/@scom/product-master-contract",
         "@types/mocha": "9.1.1",
         "@types/node": "18.8.4",
         "ganache": "7.5.0",
         "mocha": "10.0.0",
         "ts-node": "10.9.1",
+        "tsconfig-paths": "4.1.0",
         "typescript": "4.8.4"
     },
     "scripts": {
@@ -30,7 +32,8 @@
         "build:dist": "npx @ijstech/compiler",
         "build:lib": "tsc",
         "build:openswap": "cd node_modules/@openswap/sdk/ && sed -i \"s/\\\"outputObjects\\\": \\\"bytecode\\\",/\\\"outputOptions\\\": {\\\"txData\\\":true},/\" solidity.config.json && npm run build:contracts && ../../.bin/tsc",
+        "build:product-contract": "cd node_modules/@scom/product-master-contract/ && sed -i \"s/\\\"outputObjects\\\": \\\"bytecode\\\"/\\\"outputOptions\\\": {\\\"txData\\\":true},\\\"libMap\\\":{\\\"@openzeppelin\\/contracts\\\":\\\"..\\/..\\/..\\/@openzeppelin\\/contracts\\\"}/\" solconfig.json && npm run build:contracts && ../../.bin/tsc",
         "deployer": "npx @ijstech/cli serve 8080 deployer",
-        "test": "mocha --exit --require ts-node/register --timeout 1000000 ./test/*.test.ts"
+        "test": "mocha --exit --require ts-node/register --require tsconfig-paths/register --timeout 1000000 ./test/product.test.ts"
     }
 }
