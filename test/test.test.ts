@@ -20,7 +20,6 @@ import path from "path";
 // import chaibignumber from "chai-bignumber";
 // use(chaibignumber(BigNumber));
 
-// import * as C from "../";
 import { Contracts, deploy } from '../src';
 
 const outputPath = path.join(__dirname, "address.json");
@@ -405,6 +404,7 @@ describe('proxy', function() {
             Address[chainName].dependent.busdUsdOracle = busdUsdOracle.address;
         }
     });
+
     let proxy: Contracts.Proxy;
     let distributor: Contracts.Distributor;
     it('deploy', async function(){
@@ -419,6 +419,8 @@ describe('proxy', function() {
         let amountIn = 1000
         let decimals = await busd.decimals;
         let amountInWei = Utils.toDecimals(amountIn, decimals);
+
+        wallet.defaultAccount = admin;
         await busd.mint({address:trader, amount:amountIn * 2});
 
         wallet.defaultAccount = trader;
@@ -525,17 +527,78 @@ describe('proxy', function() {
         print(proxy.parseTransferBackEvent(receipt));
         print(distributor.parseAddCommissionEvent(receipt));
         let balance = await busd.balanceOf(trader);
-        print(balance);
-        // assert.strictEqual(balance.toFixed(), "3960.396039603960396039");
+        assert.strictEqual(balance.toFixed(), "4935.396039603960396039");
 
         wallet.defaultAccount = referrer1;
         balance = await distributor.distributions({param1:referrer1, param2:Utils.nullAddress});
-        print(balance);
         assert.strictEqual(balance.toFixed(), "100000000000000000");
 
         await distributor.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1); 
-        print(balance);
         assert.strictEqual(balance.toFixed(), "10000.099798232"); // 10000 + 0.1 - gas fee
+    });
+
+    it('token to ETH', async function(){
+
+        let amountIn = 1000
+        let decimals = await busd.decimals;
+        let amountInWei = Utils.toDecimals(amountIn, decimals);
+
+        wallet.defaultAccount = admin;
+        await busd.mint({address:trader, amount:amountIn * 2});
+
+        wallet.defaultAccount = trader;
+        let now = parseInt((await wallet.getBlock()).timestamp.toString());
+
+        // await busd.approve({spender:oswapContracts.router.address, amount:amountIn});
+        // await oswapContracts.router.swapExactTokensForETH({
+        //     amountIn: amountInWei,
+        //     amountOutMin: 0,
+        //     path:[busd.address,weth.address],
+        //     to: trader,
+        //     deadline: now + 1000
+        // }, amountInWei);
+        // print(await cake.balanceOf(trader));
+
+        let data = await oswapContracts.router.swapExactTokensForETH.txData({
+            amountIn: amountInWei,
+            amountOutMin: 0,
+            path:[busd.address,weth.address],
+            to: proxy.address, // trader
+            deadline: now + 1000
+        });
+        print(data);
+
+        let target = oswapContracts.router.address;
+        let tokensIn = [
+            {
+                token: busd.address,
+                amount: Utils.toDecimals(amountIn + 10 + 15, decimals),
+                directTransfer: false,
+                commissions: [
+                    {to: referrer1, amount: Utils.toDecimals(10, decimals)},
+                    {to: referrer2, amount: Utils.toDecimals(15, decimals)}
+                ]
+            }
+        ];
+        let to = trader;
+        let tokensOut = [Utils.nullAddress];
+
+        await busd.approve({spender:proxy.address, amount:amountIn * 2});
+        let receipt = await proxy.proxyCall({target,tokensIn,to,tokensOut,data}, 0);
+        print(receipt);
+        print(proxy.parseTransferForwardEvent(receipt));
+        print(proxy.parseTransferBackEvent(receipt));
+        print(distributor.parseAddCommissionEvent(receipt));
+        let balance = await wallet.balanceOf(trader);
+        assert.strictEqual(balance.toFixed(), "9992.292043855235979152"); 
+
+        wallet.defaultAccount = referrer1;
+        balance = await distributor.distributions({param1:referrer1, param2:busd.address});
+        assert.strictEqual(balance.toFixed(), "10000000000000000000");
+
+        await distributor.claim(Utils.nullAddress);
+        balance = await busd.balanceOf(referrer1); 
+        assert.strictEqual(balance.toFixed(), "10");
     });
 });
