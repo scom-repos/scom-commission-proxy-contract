@@ -170,6 +170,13 @@ declare module "@ijstech/commission-proxy/contracts/Proxy.json.ts" {
             stateMutability: string;
             type: string;
             anonymous?: undefined;
+        } | {
+            stateMutability: string;
+            type: string;
+            inputs?: undefined;
+            anonymous?: undefined;
+            name?: undefined;
+            outputs?: undefined;
         })[];
         bytecode: string;
     };
@@ -178,6 +185,14 @@ declare module "@ijstech/commission-proxy/contracts/Proxy.json.ts" {
 /// <amd-module name="@ijstech/commission-proxy/contracts/Proxy.ts" />
 declare module "@ijstech/commission-proxy/contracts/Proxy.ts" {
     import { IWallet, Contract as _Contract, TransactionReceipt, BigNumber, Event, TransactionOptions } from "@ijstech/eth-contract";
+    export interface IEthInParams {
+        target: string;
+        commissions: {
+            to: string;
+            amount: number | BigNumber;
+        }[];
+        data: string;
+    }
     export interface IProxyCallParams {
         target: string;
         tokensIn: {
@@ -193,6 +208,19 @@ declare module "@ijstech/commission-proxy/contracts/Proxy.ts" {
         tokensOut: string[];
         data: string;
     }
+    export interface ITokenInParams {
+        target: string;
+        tokensIn: {
+            token: string;
+            amount: number | BigNumber;
+            directTransfer: boolean;
+            commissions: {
+                to: string;
+                amount: number | BigNumber;
+            }[];
+        };
+        data: string;
+    }
     export class Proxy extends _Contract {
         constructor(wallet: IWallet, address?: string);
         deploy(distributor: string, options?: TransactionOptions): Promise<string>;
@@ -200,10 +228,20 @@ declare module "@ijstech/commission-proxy/contracts/Proxy.ts" {
         decodeTransferBackEvent(event: Event): Proxy.TransferBackEvent;
         parseTransferForwardEvent(receipt: TransactionReceipt): Proxy.TransferForwardEvent[];
         decodeTransferForwardEvent(event: Event): Proxy.TransferForwardEvent;
+        ethIn: {
+            (params: IEthInParams, options?: number | BigNumber | TransactionOptions): Promise<TransactionReceipt>;
+            call: (params: IEthInParams, options?: number | BigNumber | TransactionOptions) => Promise<void>;
+            txData: (params: IEthInParams, options?: number | BigNumber | TransactionOptions) => Promise<string>;
+        };
         proxyCall: {
             (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions): Promise<TransactionReceipt>;
             call: (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions) => Promise<void>;
             txData: (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions) => Promise<string>;
+        };
+        tokenIn: {
+            (params: ITokenInParams, options?: number | BigNumber | TransactionOptions): Promise<TransactionReceipt>;
+            call: (params: ITokenInParams, options?: number | BigNumber | TransactionOptions) => Promise<void>;
+            txData: (params: ITokenInParams, options?: number | BigNumber | TransactionOptions) => Promise<string>;
         };
         private assign;
     }
