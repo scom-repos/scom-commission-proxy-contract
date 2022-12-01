@@ -107,8 +107,8 @@ describe('proxy', function() {
         busd = new Erc20(wallet, Address[chainName].dependent.BUSD);
     });
 
-    let productInfo: Product.Contacts.ProductInfo;
-    let product1155: Product.Contacts.Product1155;
+    let productInfo: Product.Contracts.ProductInfo;
+    let product1155: Product.Contracts.Product1155;
     let productId: BigNumber;
     let productId2: BigNumber;
     before('Setup Proeuct', async function(){
@@ -129,7 +129,6 @@ describe('proxy', function() {
 
     let proxy: Contracts.Proxy;
     let distributor: Contracts.Distributor;
-    let product2: Product.ProductInfo;
     it('deploy', async function(){
         let result = await deploy(wallet);
 
@@ -147,10 +146,10 @@ describe('proxy', function() {
         wallet.defaultAccount = trader;
 
         // await busd.approve({spender:productInfo.address, amount:decimals});
-        // let receipt = await productInfo.buy({productId:productId, quantity:4, to:trader});
+        // let receipt = await productInfo.buy({to:trader, productId:productId, quantity:4});
         // print(receipt);
 
-        let data = await productInfo.buy.txData({productId:productId, quantity:4, to:trader});
+        let data = await productInfo.buy.txData({to:trader, productId:productId, quantity:4});
         print(data);
 
         let target = productInfo.address;
@@ -195,10 +194,10 @@ describe('proxy', function() {
 
         wallet.defaultAccount = trader;
 
-        // let receipt = await productInfo.buyEth({productId:productId2, quantity:4, to:trader}, amountInWei);
+        // let receipt = await productInfo.buyEth({to:trader, productId:productId2, quantity:4}, amountInWei);
         // print(receipt);
 
-        let data = await productInfo.buyEth.txData({productId:productId2, quantity:4, to:trader}, amountInWei);
+        let data = await productInfo.buyEth.txData({to:trader, productId:productId2, quantity:4}, amountInWei);
         print(data);
 
         let target = productInfo.address;
@@ -216,7 +215,7 @@ describe('proxy', function() {
         let balance: BigNumber;
         balance = await wallet.balanceOf(trader);
         print(balance)
-        assert.strictEqual(balance.toFixed(), "9998.974037456"); // 10000 - 1 - 0.010 - 0.015 - gas
+        assert.strictEqual(balance.toFixed(), "9998.974037406"); // 10000 - 1 - 0.010 - 0.015 - gas
         balance = await product1155.balanceOf({account:trader, id:2});
         assert.strictEqual(balance.toFixed(), "4");
 
