@@ -1,7 +1,9 @@
 import 'mocha';
 import {print} from './helper';
 
-import Config from './config';
+// import Config from './config';
+const Config = {networks:[{chainName: 'localGanache'}]};
+
 import networks from "../data/networks";
 
 import {Utils, Wallet, Contract, BigNumber, TransactionReceipt, Erc20} from "@ijstech/eth-wallet";
@@ -34,11 +36,6 @@ describe('proxy', function() {
         console.log("Please set env INFURA_ID, e.g.: INFURA_ID=<INFURA_ID> npm run test");
         return process.exit();
     }
-    if (!Config.oswapAccounts[0].privateKey.startsWith("0x")){
-        console.log("Please set priv key of " + Config.oswapAccounts[0].address + " in config");
-        return process.exit();
-    }
-
     let chainName = Config.networks[0].chainName;
     let chainId:number = networks[chainName].networkId;
 
@@ -57,17 +54,17 @@ describe('proxy', function() {
     let referrer2: string;
 
     before(async function(){
-        accounts = Config.networks[0].accounts.map(e=>e.address);
-        console.log(accounts);
+        // accounts = Config.networks[0].accounts.map(e=>e.address);
+        // console.log(accounts);
 
         if (!Address[chainName]) Address[chainName] = {};
         let provider =  // chainName=="localHardhat" ? hardhat.web3.currentProvider :
                         networks[chainName].rpc ? new Web3.providers.HttpProvider(networks[chainName].rpc, networks[chainName].rpcOptions) :
                         Ganache.provider({logging:{quiet:true},wallet:{totalAccounts:20,mnemonic:"test test test test test test test test test test test junk",defaultBalance:10000}});
 
-        wallet = new Wallet(provider, Config.networks[0].accounts);
+        wallet = new Wallet(provider/*, Config.networks[0].accounts*/);
 
-
+        accounts = await wallet.accounts;
         admin = accounts[0];
         oswapAdmin = accounts[0];
         lp1 = accounts[5];
