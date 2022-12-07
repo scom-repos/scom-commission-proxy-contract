@@ -20,7 +20,7 @@
         "@ijstech/eth-wallet": "*",
         "@scom/dapp": "*",
         "@ijstech/eth-contract": "*",
-        "@ijstech/commission-proxy": "*"
+        "@scom/commission-proxy": "*"
     },
     "menus": [
         {
@@ -53,5 +53,5 @@
         }
     },
     "copyright": "&#169; 2022 IJS Technologies. All rights reserved.",
-    "contract": "@ijstech/commission-proxy"
+    "contract": "@scom/commission-proxy"
 }

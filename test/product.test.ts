@@ -212,7 +212,7 @@ describe('proxy', function() {
         let balance: BigNumber;
         balance = await wallet.balanceOf(trader);
         print(balance)
-        assert.strictEqual(balance.toFixed(), "9998.974037406"); // 10000 - 1 - 0.010 - 0.015 - gas
+        assert.strictEqual(balance.toFixed(), "9998.974037202"); // 10000 - 1 - 0.010 - 0.015 - gas
         balance = await product1155.balanceOf({account:trader, id:2});
         assert.strictEqual(balance.toFixed(), "4");
 

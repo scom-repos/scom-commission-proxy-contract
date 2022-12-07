@@ -1,5 +1,5 @@
-/// <amd-module name="@ijstech/commission-proxy/contracts/Distributor.json.ts" />
-declare module "@ijstech/commission-proxy/contracts/Distributor.json.ts" {
+/// <amd-module name="@scom/commission-proxy/contracts/Distributor.json.ts" />
+declare module "@scom/commission-proxy/contracts/Distributor.json.ts" {
     const _default: {
         abi: ({
             anonymous: boolean;
@@ -54,8 +54,8 @@ declare module "@ijstech/commission-proxy/contracts/Distributor.json.ts" {
     };
     export default _default;
 }
-/// <amd-module name="@ijstech/commission-proxy/contracts/Distributor.ts" />
-declare module "@ijstech/commission-proxy/contracts/Distributor.ts" {
+/// <amd-module name="@scom/commission-proxy/contracts/Distributor.ts" />
+declare module "@scom/commission-proxy/contracts/Distributor.ts" {
     import { IWallet, Contract as _Contract, TransactionReceipt, BigNumber, Event, TransactionOptions } from "@ijstech/eth-contract";
     export interface IAddCommissionsParams {
         token: string;
@@ -113,8 +113,8 @@ declare module "@ijstech/commission-proxy/contracts/Distributor.ts" {
         }
     }
 }
-/// <amd-module name="@ijstech/commission-proxy/contracts/Proxy.json.ts" />
-declare module "@ijstech/commission-proxy/contracts/Proxy.json.ts" {
+/// <amd-module name="@scom/commission-proxy/contracts/Proxy.json.ts" />
+declare module "@scom/commission-proxy/contracts/Proxy.json.ts" {
     const _default_1: {
         abi: ({
             inputs: {
@@ -182,8 +182,8 @@ declare module "@ijstech/commission-proxy/contracts/Proxy.json.ts" {
     };
     export default _default_1;
 }
-/// <amd-module name="@ijstech/commission-proxy/contracts/Proxy.ts" />
-declare module "@ijstech/commission-proxy/contracts/Proxy.ts" {
+/// <amd-module name="@scom/commission-proxy/contracts/Proxy.ts" />
+declare module "@scom/commission-proxy/contracts/Proxy.ts" {
     import { IWallet, Contract as _Contract, TransactionReceipt, BigNumber, Event, TransactionOptions } from "@ijstech/eth-contract";
     export interface IEthInParams {
         target: string;
@@ -263,14 +263,14 @@ declare module "@ijstech/commission-proxy/contracts/Proxy.ts" {
         }
     }
 }
-/// <amd-module name="@ijstech/commission-proxy/contracts/index.ts" />
-declare module "@ijstech/commission-proxy/contracts/index.ts" {
-    export { Distributor } from "@ijstech/commission-proxy/contracts/Distributor.ts";
-    export { Proxy } from "@ijstech/commission-proxy/contracts/Proxy.ts";
+/// <amd-module name="@scom/commission-proxy/contracts/index.ts" />
+declare module "@scom/commission-proxy/contracts/index.ts" {
+    export { Distributor } from "@scom/commission-proxy/contracts/Distributor.ts";
+    export { Proxy } from "@scom/commission-proxy/contracts/Proxy.ts";
 }
-/// <amd-module name="@ijstech/commission-proxy" />
-declare module "@ijstech/commission-proxy" {
-    import * as Contracts from "@ijstech/commission-proxy/contracts/index.ts";
+/// <amd-module name="@scom/commission-proxy" />
+declare module "@scom/commission-proxy" {
+    import * as Contracts from "@scom/commission-proxy/contracts/index.ts";
     export { Contracts };
     import { IWallet } from '@ijstech/eth-wallet';
     export interface IDeployOptions {
