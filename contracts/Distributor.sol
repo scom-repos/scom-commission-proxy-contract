@@ -30,7 +30,7 @@ contract Distributor is IDistributor {
         }
         uint256 currentBalance = (address(token) == address(0)) ? address(this).balance : token.balanceOf(address(this));
         require(currentBalance >= lastBalance[token] + totalCommissions, "Underfund");
-        lastBalance[token] += currentBalance;
+        lastBalance[token] = currentBalance;
     }
     function claim(IERC20 token) public {
         uint256 balance = distributions[msg.sender][token];
