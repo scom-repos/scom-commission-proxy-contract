@@ -69,6 +69,7 @@ declare module "@scom/commission-proxy/contracts/Distributor.ts" {
         param2: string;
     }
     export class Distributor extends _Contract {
+        static _abi: any;
         constructor(wallet: IWallet, address?: string);
         deploy(options?: number | BigNumber | TransactionOptions): Promise<string>;
         parseAddCommissionEvent(receipt: TransactionReceipt): Distributor.AddCommissionEvent[];
@@ -222,6 +223,7 @@ declare module "@scom/commission-proxy/contracts/Proxy.ts" {
         data: string;
     }
     export class Proxy extends _Contract {
+        static _abi: any;
         constructor(wallet: IWallet, address?: string);
         deploy(distributor: string, options?: TransactionOptions): Promise<string>;
         parseTransferBackEvent(receipt: TransactionReceipt): Proxy.TransferBackEvent[];

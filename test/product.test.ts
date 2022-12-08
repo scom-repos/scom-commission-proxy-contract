@@ -53,6 +53,43 @@ describe('proxy', function() {
     let referrer1: string;
     let referrer2: string;
 
+    async function buyProductByToken(){
+        wallet.defaultAccount = admin;
+        let decimals = await busd.decimals;
+        let amountIn = 100;
+        let amountInWei = Utils.toDecimals(amountIn, decimals);
+
+        await busd.mint({address: trader, amount: 1000});
+
+        wallet.defaultAccount = trader;
+
+        // await busd.approve({spender:productInfo.address, amount:decimals});
+        // let receipt = await productInfo.buy({to:trader, productId:productId, quantity:4});
+        // print(receipt);
+
+        let data = await productInfo.buy.txData({to:trader, productId:productId, quantity:4, amountIn: Utils.toDecimals(100)});
+        print(data);
+
+        let target = productInfo.address;
+        let tokensIn = 
+            {
+                token: busd.address,
+                amount: Utils.toDecimals(amountIn + 1.0 + 1.5, decimals),
+                directTransfer: false,
+                commissions: [
+                    {to: referrer1, amount: Utils.toDecimals(1.0, decimals)},
+                    {to: referrer2, amount: Utils.toDecimals(1.5, decimals)}
+                ]
+            }
+        ;
+
+        await busd.approve({spender:proxy.address, amount:amountIn * 2});
+        let receipt = await proxy.tokenIn({target,tokensIn,data});
+        print(receipt);
+        print(proxy.parseTransferForwardEvent(receipt));
+        print(distributor.parseAddCommissionEvent(receipt));
+        print(product1155.parseTransferSingleEvent(receipt));
+    }
     before(async function(){
         // accounts = Config.networks[0].accounts.map(e=>e.address);
         // console.log(accounts);
@@ -108,18 +145,18 @@ describe('proxy', function() {
     let product1155: Product.Contracts.Product1155;
     let productId: BigNumber;
     let productId2: BigNumber;
-    before('Setup Proeuct', async function(){
+    before('Setup Product', async function(){
         let result = await Product.deploy(wallet, Product.DefaultDeployOptions);
         productInfo = new Product.Contracts.ProductInfo(wallet, result.productInfo);
         product1155 = new Product.Contracts.Product1155(wallet, result.product1155);
 
         //token
-        let receipt = await productInfo.newProduct({ipfsCid:"", quantity:100, price: Utils.toDecimals(25), token:busd.address});
+        let receipt = await productInfo.newProduct({ipfsCid:"", quantity:100, maxPrice: 0, maxQuantity: 5000, price: Utils.toDecimals(25), token:busd.address});
         let event = productInfo.parseNewProductEvent(receipt)[0];// {productId:BigNumber,owner:string,_event:Event}
         productId = event.productId;
 
         // ETH
-        receipt = await productInfo.newProduct({ipfsCid:"", quantity:100, price: Utils.toDecimals(0.25), token:Utils.nullAddress});
+        receipt = await productInfo.newProduct({ipfsCid:"", quantity:100, maxPrice: 0, maxQuantity: 5000, price: Utils.toDecimals(0.25), token:Utils.nullAddress});
         event = productInfo.parseNewProductEvent(receipt)[0];// {productId:BigNumber,owner:string,_event:Event}
         productId2 = event.productId;
     });
@@ -133,58 +170,26 @@ describe('proxy', function() {
         distributor = new Contracts.Distributor(wallet, result.distributor);
     });
 
-    it('token', async function(){
-        let decimals = await busd.decimals;
-        let amountIn = 100;
-        let amountInWei = Utils.toDecimals(amountIn, decimals);
-
-        await busd.mint({address: trader, amount: 1000});
-
-        wallet.defaultAccount = trader;
-
-        // await busd.approve({spender:productInfo.address, amount:decimals});
-        // let receipt = await productInfo.buy({to:trader, productId:productId, quantity:4});
-        // print(receipt);
-
-        let data = await productInfo.buy.txData({to:trader, productId:productId, quantity:4});
-        print(data);
-
-        let target = productInfo.address;
-        let tokensIn = 
-            {
-                token: busd.address,
-                amount: Utils.toDecimals(amountIn + 1.0 + 1.5, decimals),
-                directTransfer: false,
-                commissions: [
-                    {to: referrer1, amount: Utils.toDecimals(1.0, decimals)},
-                    {to: referrer2, amount: Utils.toDecimals(1.5, decimals)}
-                ]
-            }
-        ;
-
-        await busd.approve({spender:proxy.address, amount:amountIn * 2});
-        let receipt = await proxy.tokenIn({target,tokensIn,data});
-        print(receipt);
-        print(proxy.parseTransferForwardEvent(receipt));
-        print(distributor.parseAddCommissionEvent(receipt));
-        print(product1155.parseTransferSingleEvent(receipt));
-
+    it('Buy product by token', async function(){
+        await buyProductByToken();
         let balance: BigNumber;
         balance = await busd.balanceOf(trader);
         assert.strictEqual(balance.toFixed(), "897.5"); // 1000 - 100 - 1.0 - 1.5
         balance = await product1155.balanceOf({account:trader, id:1});
         assert.strictEqual(balance.toFixed(), "4");
+        let lastBalance = await distributor.lastBalance(busd.address);
+        let decimals = await busd.decimals;
+        assert.strictEqual(lastBalance.toFixed(), Utils.toDecimals(2.5, decimals).toFixed());
 
         wallet.defaultAccount = referrer1;
         balance = await distributor.distributions({param1:referrer1, param2:busd.address});
         assert.strictEqual(balance.toFixed(), "1000000000000000000");
-
         await distributor.claim(busd.address);
         balance = await busd.balanceOf(referrer1);
         assert.strictEqual(balance.toFixed(), "1");
     });
 
-    it('ETH', async function(){
+    it('Buy product by ETH', async function(){
         let decimals = 18;
         let amountIn = 1;
         let amountInWei = Utils.toDecimals(amountIn, decimals);
@@ -212,7 +217,7 @@ describe('proxy', function() {
         let balance: BigNumber;
         balance = await wallet.balanceOf(trader);
         print(balance)
-        assert.strictEqual(balance.toFixed(), "9998.974037202"); // 10000 - 1 - 0.010 - 0.015 - gas
+        assert.strictEqual(balance.toFixed(), "9998.974023746"); // 10000 - 1 - 0.010 - 0.015 - gas
         balance = await product1155.balanceOf({account:trader, id:2});
         assert.strictEqual(balance.toFixed(), "4");
 
@@ -224,4 +229,11 @@ describe('proxy', function() {
         balance = await wallet.balanceOf(referrer1);
         assert.strictEqual(balance.toFixed(), "10000.009798232"); // 10000 + 0.010 - gas
     });
+
+    it('Buy product by token again', async function(){
+        await buyProductByToken();
+        let lastBalance = await distributor.lastBalance(busd.address);
+        let decimals = await busd.decimals;
+        assert.strictEqual(lastBalance.toFixed(), Utils.toDecimals(4, decimals).toFixed());
+    })
 });

@@ -36,6 +36,7 @@ export interface ITokenInParams {
     data: string;
 }
 export declare class Proxy extends _Contract {
+    static _abi: any;
     constructor(wallet: IWallet, address?: string);
     deploy(distributor: string, options?: TransactionOptions): Promise<string>;
     parseTransferBackEvent(receipt: TransactionReceipt): Proxy.TransferBackEvent[];
