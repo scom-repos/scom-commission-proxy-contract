@@ -20,10 +20,12 @@ export async function deploy(wallet: IWallet, options?: IDeployOptions): Promise
     progress('Contracts deployment start');
     let distributor = new Contracts.Distributor(wallet);
     let proxy = new Contracts.Proxy(wallet);
-    progress('Deploy Proxy');
+    progress('Deploy Distributor');
     await distributor.deploy();
+    progress('Distributor deployed ' + distributor.address);
+    progress('Deploy Proxy');
     await proxy.deploy(distributor.address);
-    progress('Proxy deployed ' + distributor.address + ' ' + proxy.address);
+    progress('Proxy deployed ' + proxy.address);
     progress('Contracts deployment finished');
     return {
         distributor: distributor.address,

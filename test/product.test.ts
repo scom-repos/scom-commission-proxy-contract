@@ -220,7 +220,7 @@ describe('proxy', function() {
         let balance: BigNumber;
         balance = await wallet.balanceOf(trader);
         print(balance)
-        assert.strictEqual(balance.toFixed(), "9998.974025352"); // 10000 - 1 - 0.010 - 0.015 - gas
+        assert.strictEqual(balance.toFixed(), "9998.97402604"); // 10000 - 1 - 0.010 - 0.015 - gas
         balance = await product1155.balanceOf({account:trader, id:2});
         assert.strictEqual(balance.toFixed(), "4");
 
@@ -230,7 +230,7 @@ describe('proxy', function() {
 
         await distributor.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1);
-        assert.strictEqual(balance.toFixed(), "10000.009798232"); // 10000 + 0.010 - gas
+        assert.strictEqual(balance.toFixed(), "10000.009798412"); // 10000 + 0.010 - gas
     });
 
     it('Buy product by token again', async function(){
