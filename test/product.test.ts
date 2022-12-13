@@ -90,6 +90,31 @@ describe('proxy', function() {
         print(distributor.parseAddCommissionEvent(receipt));
         print(product1155.parseTransferSingleEvent(receipt));
     }
+    async function buyProductByETH(){
+        let decimals = 18;
+        let amountIn = 1;
+        let amountInWei = Utils.toDecimals(amountIn, decimals);
+
+        wallet.defaultAccount = trader;
+
+        // let receipt = await productInfo.buyEth({to:trader, productId:productId2, quantity:4}, amountInWei);
+        // print(receipt);
+
+        let data = await productInfo.buyEth.txData({to:trader, productId:productId2, quantity:4}, amountInWei);
+        print(data);
+
+        let target = productInfo.address;
+        let commissions = [
+            {to: referrer1, amount: Utils.toDecimals(0.010, decimals)},
+            {to: referrer2, amount: Utils.toDecimals(0.015, decimals)}
+        ];
+
+        let receipt = await proxy.ethIn({target,commissions,data}, Utils.toDecimals(amountIn + 0.010 + 0.015));
+        print(receipt);
+        print(proxy.parseTransferForwardEvent(receipt));
+        print(distributor.parseAddCommissionEvent(receipt));
+        print(product1155.parseTransferSingleEvent(receipt));
+    }
     before(async function(){
         // accounts = Config.networks[0].accounts.map(e=>e.address);
         // console.log(accounts);
@@ -151,12 +176,12 @@ describe('proxy', function() {
         product1155 = new Product.Contracts.Product1155(wallet, result.product1155);
 
         //token
-        let receipt = await productInfo.newProduct({ipfsCid:"", quantity:100, maxPrice: 0, maxQuantity: 5000, price: Utils.toDecimals(25), token:busd.address});
+        let receipt = await productInfo.newProduct({uri:"", quantity:100, maxPrice: 0, maxQuantity: 5000, price: Utils.toDecimals(25), token:busd.address});
         let event = productInfo.parseNewProductEvent(receipt)[0];// {productId:BigNumber,owner:string,_event:Event}
         productId = event.productId;
 
         // ETH
-        receipt = await productInfo.newProduct({ipfsCid:"", quantity:100, maxPrice: 0, maxQuantity: 5000, price: Utils.toDecimals(0.25), token:Utils.nullAddress});
+        receipt = await productInfo.newProduct({uri:"", quantity:100, maxPrice: 0, maxQuantity: 5000, price: Utils.toDecimals(0.25), token:Utils.nullAddress});
         event = productInfo.parseNewProductEvent(receipt)[0];// {productId:BigNumber,owner:string,_event:Event}
         productId2 = event.productId;
     });
@@ -190,34 +215,12 @@ describe('proxy', function() {
     });
 
     it('Buy product by ETH', async function(){
-        let decimals = 18;
-        let amountIn = 1;
-        let amountInWei = Utils.toDecimals(amountIn, decimals);
-
-        wallet.defaultAccount = trader;
-
-        // let receipt = await productInfo.buyEth({to:trader, productId:productId2, quantity:4}, amountInWei);
-        // print(receipt);
-
-        let data = await productInfo.buyEth.txData({to:trader, productId:productId2, quantity:4}, amountInWei);
-        print(data);
-
-        let target = productInfo.address;
-        let commissions = [
-            {to: referrer1, amount: Utils.toDecimals(0.010, decimals)},
-            {to: referrer2, amount: Utils.toDecimals(0.015, decimals)}
-        ];
-
-        let receipt = await proxy.ethIn({target,commissions,data}, Utils.toDecimals(amountIn + 0.010 + 0.015));
-        print(receipt);
-        print(proxy.parseTransferForwardEvent(receipt));
-        print(distributor.parseAddCommissionEvent(receipt));
-        print(product1155.parseTransferSingleEvent(receipt));
+        await buyProductByETH();
 
         let balance: BigNumber;
         balance = await wallet.balanceOf(trader);
         print(balance)
-        assert.strictEqual(balance.toFixed(), "9998.974023746"); // 10000 - 1 - 0.010 - 0.015 - gas
+        assert.strictEqual(balance.toFixed(), "9998.974025352"); // 10000 - 1 - 0.010 - 0.015 - gas
         balance = await product1155.balanceOf({account:trader, id:2});
         assert.strictEqual(balance.toFixed(), "4");
 
@@ -235,5 +238,9 @@ describe('proxy', function() {
         let lastBalance = await distributor.lastBalance(busd.address);
         let decimals = await busd.decimals;
         assert.strictEqual(lastBalance.toFixed(), Utils.toDecimals(4, decimals).toFixed());
-    })
+    });
+
+    it('Buy product by ETH again', async function(){
+        await buyProductByETH();
+    });
 });
