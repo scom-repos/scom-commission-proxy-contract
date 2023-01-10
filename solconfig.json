@@ -3,5 +3,9 @@
     "optimizerRuns": 999999,
     "sourceDir": "contracts",
     "outputDir": "src/contracts",
-    "outputOptions": {"txData":true}
+    "outputOptions": {"txData":true},
+    "flattenFiles": [
+        "contracts/Distributor.sol",
+        "contracts/Proxy.sol"
+    ]
 }
