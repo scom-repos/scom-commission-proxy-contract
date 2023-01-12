@@ -1,9 +1,9 @@
 import {IWallet, Contract as _Contract, Transaction, TransactionReceipt, BigNumber, Event, IBatchRequestObj, TransactionOptions} from "@ijstech/eth-contract";
 import Bin from "./Distributor.json";
+
 export interface IAddCommissionsParams {token:string;commissions:{to:string,amount:number|BigNumber}[]}
 export interface IDistributionsParams {param1:string;param2:string}
 export class Distributor extends _Contract{
-    static _abi: any = Bin.abi;
     constructor(wallet: IWallet, address?: string){
         super(wallet, address, Bin.abi, Bin.bytecode);
         this.assign()

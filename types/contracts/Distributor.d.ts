@@ -11,7 +11,6 @@ export interface IDistributionsParams {
     param2: string;
 }
 export declare class Distributor extends _Contract {
-    static _abi: any;
     constructor(wallet: IWallet, address?: string);
     deploy(options?: number | BigNumber | TransactionOptions): Promise<string>;
     parseAddCommissionEvent(receipt: TransactionReceipt): Distributor.AddCommissionEvent[];

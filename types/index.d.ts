@@ -9,6 +9,7 @@ export interface IDeployResult {
 }
 export declare var DefaultDeployOptions: IDeployOptions;
 export declare function deploy(wallet: IWallet, options?: IDeployOptions): Promise<IDeployResult>;
+export declare function deployProxyWithDistributor(wallet: IWallet, options?: IDeployOptions): Promise<IDeployResult>;
 export declare function onProgress(handler: any): void;
 declare const _default: {
     Contracts: typeof Contracts;
