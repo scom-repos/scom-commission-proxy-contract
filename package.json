@@ -38,7 +38,6 @@
         "init:product-contract":"if [ ! -d node_modules/@scom/product-master-contract/node_modules ] ; then cd node_modules/@scom/product-master-contract && mkdir node_modules && mkdir node_modules/@ijstech && mkdir node_modules/@scom && cd node_modules/@ijstech && ln -s ../../../../@ijstech/cli && ln -s ../../../../@ijstech/compiler && ln -s ../../../../@ijstech/eth-contract && cd ../@scom && ln -s ../../../contract-deployer ; fi",
         "deployer": "npx @ijstech/cli serve 8080 deployer",
         "test": "mocha --exit --require ts-node/register --require tsconfig-paths/register --timeout 1000000 ./test/proxy.test.ts",
-        "test:product": "mocha --exit --require ts-node/register --require tsconfig-paths/register --timeout 1000000 ./test/product.test.ts",
-        "test:proxyWithDistributor": "mocha --exit --require ts-node/register --require tsconfig-paths/register --timeout 1000000 ./test/proxyWithDistributor.test.ts"
+        "test:product": "mocha --exit --require ts-node/register --require tsconfig-paths/register --timeout 1000000 ./test/product.test.ts"
     }
 }

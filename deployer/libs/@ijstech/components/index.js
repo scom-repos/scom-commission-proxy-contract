@@ -10016,6 +10016,7 @@ __export(exports, {
   Unobserve: () => Unobserve,
   Upload: () => Upload,
   VStack: () => VStack,
+  Video: () => Video,
   application: () => application,
   customElements: () => customElements2,
   customModule: () => customModule,
@@ -10394,8 +10395,8 @@ var defaultTheme = {
   background: {
     default: "#fafafa",
     paper: "#fff",
-    main: "#181e3e",
-    modal: "#192046",
+    main: "#ffffff",
+    modal: "#ffffff",
     gradient: "linear-gradient(90deg, #a8327f 0%, #d4626a 100%)"
   },
   breakboints: {
@@ -11853,6 +11854,9 @@ var Component = class extends HTMLElement {
   }
   init() {
     this.initialized = true;
+    if (this.options["class"]) {
+      this.setAttribute("class", this.options["class"]);
+    }
     if (this._ready === void 0) {
       this._ready = true;
       if (this._readyCallback) {
@@ -13459,7 +13463,7 @@ var Control = class extends Component {
     this.style.fontFamily = value.name || "";
     this.style.fontStyle = value.style || "";
     this.style.textTransform = value.transform || "none";
-    this.style.fontWeight = value.bold ? "bold" : `${value.weight}` || "";
+    this.style.fontWeight = value.bold ? "bold" : `${value.weight || ""}`;
   }
   get display() {
     return this._display;
@@ -13630,8 +13634,8 @@ var RequireJS = {
   config(config) {
     window.require.config(config);
   },
-  require(reqs, callback) {
-    window.require(reqs, callback);
+  require(reqs2, callback) {
+    window.require(reqs2, callback);
   },
   defined(module2) {
     return window.require.defined(module2);
@@ -14089,7 +14093,7 @@ var Application = class {
     return result;
   }
   async loadPackage(packageName, modulePath, options) {
-    var _a, _b;
+    var _a, _b, _c;
     if (RequireJS.defined(packageName)) {
       if (!this.packages[packageName]) {
         let m = window["require"](packageName);
@@ -14099,18 +14103,30 @@ var Application = class {
       return this.packages[packageName];
     }
     ;
-    let libPath = LibPath || "";
-    if (LibPath && !LibPath.endsWith("/"))
-      libPath = libPath + "/";
+    options = options || this._initOptions;
+    if (options && options.modules && options.modules[packageName]) {
+      let pack = options.modules[packageName];
+      for (let i = 0; i < ((_a = pack.dependencies) == null ? void 0 : _a.length); i++) {
+        let n = pack.dependencies[i];
+        if (!RequireJS.defined(n))
+          await this.loadPackage(n);
+      }
+      ;
+    }
+    ;
     if (!modulePath) {
-      if ((_a = options == null ? void 0 : options.modules) == null ? void 0 : _a[packageName])
-        modulePath = "modules/" + ((_b = options == null ? void 0 : options.modules) == null ? void 0 : _b[packageName].path) + "/index.js";
+      if ((_b = options == null ? void 0 : options.modules) == null ? void 0 : _b[packageName])
+        modulePath = ((options == null ? void 0 : options.rootDir) ? options.rootDir + "/" : "") + "modules/" + ((_c = options == null ? void 0 : options.modules) == null ? void 0 : _c[packageName].path) + "/index.js";
       else
         return null;
-    } else if (modulePath == "*")
-      modulePath = "libs/" + packageName + "/index.js";
-    else if (modulePath.startsWith("{LIB}/"))
+    } else if (modulePath == "*") {
+      modulePath = ((options == null ? void 0 : options.rootDir) ? options.rootDir + "/" : "") + "libs/" + packageName + "/index.js";
+    } else if (modulePath.startsWith("{LIB}/")) {
+      let libPath = LibPath || "";
+      if (LibPath && !LibPath.endsWith("/"))
+        libPath = libPath + "/";
       modulePath = modulePath.replace("{LIB}/", libPath);
+    }
     let script = await this.getScript(modulePath);
     if (script) {
       _currentDefineModule = null;
@@ -14129,58 +14145,64 @@ var Application = class {
     ;
     return null;
   }
-  async loadModule(modulePath, options) {
-    let module2 = await this.newModule(modulePath, options);
+  async loadModule(modulePath, options, forceInit) {
+    let module2 = await this.newModule(modulePath, options, forceInit);
     if (module2)
       document.body.append(module2);
     return module2;
   }
-  async newModule(module2, options) {
+  getModulePath(module2) {
+    let options = this._initOptions;
     let modulePath = module2;
-    if (options) {
-      if (!this._assets && options.assets)
-        this._assets = await this.loadPackage(options.assets, "", options) || {};
-      if (options.modules && options.modules[module2] && options.modules[module2].path) {
-        modulePath = "/";
-        if (options.rootDir)
-          modulePath += options.rootDir + "/";
-        if (options.moduleDir)
-          modulePath += options.moduleDir + "/";
-        modulePath += options.modules[module2].path;
-        if (!modulePath.endsWith(".js"))
-          modulePath += "/index.js";
-      } else if (options.dependencies && options.dependencies[module2])
-        modulePath = `libs/${module2}/index.js`;
-    }
-    ;
-    let elmId = this.modulesId[modulePath];
-    if (elmId && modulePath)
-      return document.createElement(elmId);
-    if (options && options.dependencies) {
-      for (let p in options.dependencies) {
-        if (p != options.main)
-          await this.loadPackage(p, options.dependencies[p]);
+    if (options && options.modules && options.modules[module2] && options.modules[module2].path) {
+      modulePath = "";
+      if (options.rootDir)
+        modulePath += options.rootDir + "/";
+      if (options.moduleDir)
+        modulePath += options.moduleDir + "/";
+      modulePath += options.modules[module2].path;
+      if (!modulePath.endsWith(".js"))
+        modulePath += "/index.js";
+    } else if (options.dependencies && options.dependencies[module2])
+      modulePath = `${(options == null ? void 0 : options.rootDir) ? options.rootDir + "/" : ""}libs/${module2}/index.js`;
+    return modulePath;
+  }
+  async newModule(module2, options, forceInit) {
+    const _initOptions = this._initOptions;
+    if ((!this._initOptions || forceInit) && options) {
+      this._initOptions = options;
+      if (!this._assets && this._initOptions.assets)
+        this._assets = await this.loadPackage(this._initOptions.assets) || {};
+      if (this._initOptions.dependencies) {
+        for (let p in this._initOptions.dependencies) {
+          if (p != this._initOptions.main)
+            await this.loadPackage(p, this._initOptions.dependencies[p]);
+        }
+        ;
       }
+      ;
     }
     ;
+    let modulePath = module2;
+    if (this._initOptions)
+      modulePath = this.getModulePath(module2);
+    let elmId = this.modulesId[modulePath];
+    if (elmId && modulePath) {
+      if (forceInit && _initOptions)
+        this._initOptions = _initOptions;
+      return document.createElement(elmId);
+    }
     let script;
     if (options && options.script)
       script = options.script;
     else {
-      if (options && options.modules && options.modules[module2] && options.modules[module2].dependencies) {
-        let dependencies = options.modules[module2].dependencies;
+      if (this._initOptions && this._initOptions.modules && this._initOptions.modules[module2] && this._initOptions.modules[module2].dependencies) {
+        let dependencies = this._initOptions.modules[module2].dependencies;
         for (let i = 0; i < dependencies.length; i++) {
-          let pack = options.modules[dependencies[i]];
-          if (pack && pack.path) {
-            let path = "/";
-            if (options.rootDir)
-              path += options.rootDir + "/";
-            if (options.moduleDir)
-              path += options.moduleDir + "/";
-            path += pack.path;
-            if (!pack.path.endsWith(".js"))
-              path += "/index.js";
-            await this.loadPackage(dependencies[i], path, options);
+          let dep = dependencies[i];
+          if (!this.packages[dep]) {
+            let path = this.getModulePath(dep);
+            await this.loadPackage(dep, path);
           }
           ;
         }
@@ -14211,11 +14233,15 @@ var Application = class {
           };
           customElements.define(elmId, Module2);
           let result = new Module2(null, options);
+          if (forceInit && _initOptions)
+            this._initOptions = _initOptions;
           return result;
         }
         ;
       }
     }
+    if (forceInit && _initOptions)
+      this._initOptions = _initOptions;
     return null;
   }
   async copyToClipboard(value) {
@@ -23404,6 +23430,83 @@ var moment;
 RequireJS.require(["@moment"], (_moment) => {
   moment = _moment;
 });
+
+// packages/video/src/style/video.css.ts
+cssRule("i-video", {
+  $nest: {}
+});
+
+// packages/video/src/video.ts
+var reqs = ["video-js"];
+RequireJS.config({
+  baseUrl: `${LibPath}lib/video-js`,
+  paths: {
+    "video-js": "video-js"
+  }
+});
+function loadCss() {
+  const cssId = "videoCss";
+  if (!document.getElementById(cssId)) {
+    const head = document.getElementsByTagName("head")[0];
+    const link = document.createElement("link");
+    link.id = cssId;
+    link.rel = "stylesheet";
+    link.type = "text/css";
+    link.href = `${LibPath}lib/video-js/video-js.css`;
+    link.media = "all";
+    head.appendChild(link);
+  }
+}
+var Video = class extends Container {
+  get url() {
+    return this._url;
+  }
+  set url(value) {
+    this._url = value;
+    if (value && !this.sourceElm)
+      this.sourceElm = this.createElement("source", this.videoElm);
+    if (this.sourceElm)
+      this.sourceElm.src = value;
+  }
+  init() {
+    if (!this.initialized) {
+      super.init();
+      loadCss();
+      const self = this;
+      let id = `video-${new Date().getTime()}`;
+      this.videoElm = this.createElement("video-js", this);
+      this.videoElm.id = id;
+      this.videoElm.setAttribute("controls", "true");
+      this.videoElm.setAttribute("preload", "auto");
+      this.videoElm.classList.add("vjs-default-skin");
+      this.sourceElm = this.createElement("source", this.videoElm);
+      this.sourceElm.type = "application/x-mpegURL";
+      this.url = this.getAttribute("url", true);
+      RequireJS.require(reqs, function(videojs) {
+        self.player = videojs(id, {
+          playsinline: true,
+          autoplay: false,
+          controls: true,
+          fluid: true,
+          aspectRatio: "16:9",
+          responsive: true,
+          inactivityTimeout: 500,
+          preload: "auto",
+          techOrder: ["html5"],
+          plugins: {}
+        });
+      });
+    }
+  }
+  static async create(options, parent) {
+    let self = new this(parent, options);
+    await self.ready();
+    return self;
+  }
+};
+Video = __decorateClass([
+  customElements2("i-video")
+], Video);
 /*!-----------------------------------------------------------
 * Copyright (c) IJS Technologies. All rights reserved.
 * Released under dual AGPLv3/commercial license

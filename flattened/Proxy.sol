@@ -82,6 +82,33 @@ interface IERC20 {
     ) external returns (bool);
 }
 
+// OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/IERC20Metadata.sol)
+
+pragma solidity ^0.8.0;
+
+
+/**
+ * @dev Interface for the optional metadata functions from the ERC20 standard.
+ *
+ * _Available since v4.1._
+ */
+interface IERC20Metadata is IERC20 {
+    /**
+     * @dev Returns the name of the token.
+     */
+    function name() external view returns (string memory);
+
+    /**
+     * @dev Returns the symbol of the token.
+     */
+    function symbol() external view returns (string memory);
+
+    /**
+     * @dev Returns the decimals places of the token.
+     */
+    function decimals() external view returns (uint8);
+}
+
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/draft-IERC20Permit.sol)
 
 pragma solidity ^0.8.0;
@@ -500,52 +527,10 @@ library SafeERC20 {
         }
     }
 }
+// NOT WORKING
+
 
 pragma solidity 0.8.17;
-
-
-interface IDistributor {
-    struct Commission {
-        address to;
-        uint256 amount;
-    } 
-
-    event AddCommission(address to, IERC20 token, uint256 amount);
-
-    function lastBalance(IERC20 token) external view returns (uint256 lastBalance);
-    function distributions(address account, IERC20 token) external view returns (uint256 distributions);
-
-    function addCommissions(IERC20 token, Commission[] calldata commissions) external payable;
-}
-// OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/IERC20Metadata.sol)
-
-pragma solidity ^0.8.0;
-
-
-/**
- * @dev Interface for the optional metadata functions from the ERC20 standard.
- *
- * _Available since v4.1._
- */
-interface IERC20Metadata is IERC20 {
-    /**
-     * @dev Returns the name of the token.
-     */
-    function name() external view returns (string memory);
-
-    /**
-     * @dev Returns the symbol of the token.
-     */
-    function symbol() external view returns (string memory);
-
-    /**
-     * @dev Returns the decimals places of the token.
-     */
-    function decimals() external view returns (uint8);
-}
-
-pragma solidity 0.8.17;
-
 
 
 
@@ -555,18 +540,23 @@ contract Proxy {
 
     event TransferForward(address indexed target, IERC20 indexed token, address sender, uint256 amount, uint256 commissions);
     event TransferBack(address indexed target, IERC20 indexed token, address sender, uint256 amount);
+    event Claim(address indexed from, IERC20 token, uint256 amount);
+    event AddCommission(address to, IERC20 token, uint256 amount);
+    event Skim(IERC20 indexed token, address indexed to, uint256 amount);
 
+    struct Commission {
+        address to;
+        uint256 amount;
+    } 
     struct TokensIn {
         IERC20 token; 
         uint256 amount;
         bool directTransfer;
-        IDistributor.Commission[] commissions;
+        Commission[] commissions;
     }
 
-    IDistributor immutable distributor;
-    constructor(IDistributor _distributor) {
-        distributor = _distributor;
-    }
+    mapping(IERC20 => uint256) public lastBalance;
+    mapping(address => mapping(IERC20 => uint256)) public distributions;
 
     receive() external payable {}
 
@@ -580,25 +570,31 @@ contract Proxy {
         require(success, 'TransferHelper: ETH_TRANSFER_FAILED');
     }
 
-    function tokenIn(address target, TokensIn calldata tokensIn, bytes memory data) public payable {
+    function tokenIn(address target, TokensIn calldata tokensIn, bytes memory data) external {
         // transfer token to target 
         TokensIn calldata transfer = tokensIn;
         uint256 totalCommissions;
         uint256 length2 = transfer.commissions.length;
         for (uint256 j = 0 ; j < length2 ; j++ ){
-            totalCommissions += transfer.commissions[j].amount;
+            Commission calldata commission = transfer.commissions[j];
+            totalCommissions += commission.amount;
+            distributions[commission.to][tokensIn.token] += commission.amount;
+            emit AddCommission(commission.to, tokensIn.token, commission.amount);
         }
         uint amount = transfer.amount - totalCommissions;
 
-        // transfer commissions to distributor
-        transfer.token.safeTransferFrom(msg.sender, address(distributor), totalCommissions);
-        distributor.addCommissions(transfer.token, transfer.commissions);
+        lastBalance[transfer.token] += totalCommissions;
 
         // transfer / approve tokens to target
         if (transfer.directTransfer) {
+            uint256 actualTotalCommission = _transferAssetFrom(transfer.token, totalCommissions);
+            require(actualTotalCommission >= totalCommissions, "commission amount not matched");
+
             transfer.token.safeTransferFrom(msg.sender, target, amount);
         } else {
-            amount = _transferAssetFrom(transfer.token, amount);
+            uint256 actualAmount = _transferAssetFrom(transfer.token, transfer.amount);
+            require(actualAmount >= transfer.amount, "commission amount not matched");
+
             // optional, may make a list of tokens need to reset first
             transfer.token.safeApprove(target, 0);
             transfer.token.safeApprove(target, amount);
@@ -616,17 +612,19 @@ contract Proxy {
             return(0, returndatasize())
         }
     }
-    function ethIn(address target, IDistributor.Commission[] calldata commissions, bytes memory data) public payable {
+    function ethIn(address target, Commission[] calldata commissions, bytes memory data) external payable {
         // transfer ETH to target 
         uint256 totalCommissions;
         uint256 length2 = commissions.length;
         for (uint256 j = 0 ; j < length2 ; j++ ){
-            totalCommissions += commissions[j].amount;
+            Commission calldata commission = commissions[j];
+            totalCommissions += commission.amount;
+            distributions[commission.to][IERC20(address(0))] += commission.amount;
+            emit AddCommission(commission.to, IERC20(address(0)), commission.amount);
         }
         uint amount = msg.value - totalCommissions;
 
-        // transfer commissions to distributor
-        distributor.addCommissions{value:totalCommissions}(IERC20(address(0)), commissions);
+        lastBalance[IERC20(address(0))] += totalCommissions;
 
         emit TransferForward(target, IERC20(address(0)), msg.sender, amount, totalCommissions);
 
@@ -642,16 +640,9 @@ contract Proxy {
         }
     }
 
-    function proxyCall(address target, TokensIn[] calldata tokensIn, address to, IERC20[] calldata tokensOut, bytes memory data) public payable {
-        // save the ETH and token balances before execution
-        uint256 length = tokensOut.length;
-        uint256[] memory outAmounts = new uint256[](length);
-        for (uint256 i = 0 ; i < length ; i++) {
-            outAmounts[i] = address(tokensOut[i]) == address(0) ? address(this).balance : tokensOut[i].balanceOf(address(this));
-        }
-
+    function proxyCall(address target, TokensIn[] calldata tokensIn, address to, IERC20[] calldata tokensOut, bytes memory data) external payable {
         // transfer token to target 
-        length = tokensIn.length;
+        uint256 length = tokensIn.length;
         uint ethAmount;
         for (uint256 i = 0 ; i < length ; i++) {
             TokensIn calldata transfer = tokensIn[i];
@@ -659,25 +650,30 @@ contract Proxy {
             {
             uint256 length2 = transfer.commissions.length;
             for (uint256 j = 0 ; j < length2 ; j++ ){
-                totalCommissions += transfer.commissions[j].amount;
+                Commission calldata commission = transfer.commissions[j];
+                totalCommissions += commission.amount;
+                distributions[commission.to][transfer.token] += commission.amount;
+                emit AddCommission(commission.to, transfer.token, commission.amount); // distributions[commission.to][token]
             }
             }
             uint amount = transfer.amount - totalCommissions;
+            lastBalance[transfer.token] += totalCommissions;
 
             if (address(transfer.token) == address(0)) {
+                require(ethAmount == 0, "more than one ETH transfer");
                 require(msg.value == transfer.amount, "ETH amount not matched");
-                distributor.addCommissions{value:totalCommissions}(IERC20(address(0)), transfer.commissions);
                 ethAmount = amount;
             } else {
-                // transfer commissions to distributor
-                transfer.token.safeTransferFrom(msg.sender, address(distributor), totalCommissions);
-                distributor.addCommissions(transfer.token, transfer.commissions);
-
                 // transfer / approve tokens to target
                 if (transfer.directTransfer) {
+                    uint256 actualTotalCommission = _transferAssetFrom(transfer.token, totalCommissions);
+                    require(actualTotalCommission >= totalCommissions, "commission amount not matched");
+
                     transfer.token.safeTransferFrom(msg.sender, target, amount);
                 } else {
-                    amount = _transferAssetFrom(transfer.token, amount);
+                    uint256 actualAmount = _transferAssetFrom(transfer.token, transfer.amount);
+                    require(actualAmount >= transfer.amount, "commission amount not matched");
+
                     // optional, may make a list of tokens need to reset first
                     transfer.token.safeApprove(target, 0);
                     transfer.token.safeApprove(target, amount);
@@ -700,10 +696,10 @@ contract Proxy {
         for (uint256 i = 0 ; i < length ; i++) {
             uint256 amount;
             if (address(tokensOut[i]) == address(0)) {
-                amount = address(this).balance - outAmounts[i];
+                amount = address(this).balance - lastBalance[IERC20(address(0))];
                 safeTransferETH(to, amount);
             } else  {
-                amount = tokensOut[i].balanceOf(address(this)) - outAmounts[i];
+                amount = tokensOut[i].balanceOf(address(this)) - lastBalance[tokensOut[i]];
                 tokensOut[i].safeTransfer(to, amount);
             }
             emit TransferBack(target, tokensOut[i], to, amount);
@@ -711,6 +707,44 @@ contract Proxy {
         assembly {
             returndatacopy(0, 0, returndatasize())
             return(0, returndatasize())
+        }
+    }
+
+    // commissions
+    function claim(IERC20 token) public {
+        uint256 balance = distributions[msg.sender][token];
+        distributions[msg.sender][token] = 0;
+        lastBalance[token] -= balance;
+        if (address(token) == address(0)) {
+            safeTransferETH(msg.sender, balance);
+        } else {
+            token.safeTransfer(msg.sender, balance);
+        }
+        emit Claim(msg.sender, token, balance);
+    }
+    function claimMultiple(IERC20[] calldata tokens) external {
+        uint256 length = tokens.length;
+        for (uint256 i ; i < length ; i++) {
+            claim(tokens[i]);
+        }
+    }
+
+    // transfer excess tokens to caller
+    function skim(IERC20[] calldata tokens) external {
+        uint256 length = tokens.length;
+        for (uint256 i = 0 ; i < length ; i++) {
+            uint256 amount;
+            IERC20 token = tokens[i];
+            if (address(token) == address(0)) {
+                amount = address(this).balance;
+                amount = amount - lastBalance[IERC20(address(0))];
+                safeTransferETH(msg.sender, amount);
+            } else {
+                amount = token.balanceOf(address(this));
+                amount = amount - lastBalance[token];
+                token.safeTransfer(msg.sender, amount);
+            }
+            emit Skim(token, msg.sender, amount);
         }
     }
 }

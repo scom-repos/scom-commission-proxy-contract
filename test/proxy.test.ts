@@ -551,7 +551,7 @@ describe('proxy', function() {
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1); 
-        assert.strictEqual(balance.toFixed(), "10000.099798028"); // 10000 + 0.1 - gas fee
+        assert.strictEqual(balance.toFixed(), "10000.0997982"); // 10000 + 0.1 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals(15).toFixed());
@@ -618,7 +618,7 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.15").toFixed());
 
         balance = await wallet.balanceOf(trader);
-        assert.strictEqual(balance.toFixed(), "9992.292147857235979152");//"9992.292127025235979152");  // 10000 - 10 - 0.1 - 0.15 + (1000/400) - gas fee*3
+        assert.strictEqual(balance.toFixed(), "9992.292128401235979152"); // 10000 - 10 - 0.1 - 0.15 + (1000/400) - gas fee*3
 
         wallet.defaultAccount = referrer1;
         balance = await proxy.distributions({param1:referrer1, param2:busd.address});
@@ -767,7 +767,7 @@ describe('proxy', function() {
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1); 
-        assert.strictEqual(balance.toFixed(), "10000.199534336"); // 10000 + 0.1 - gas fee
+        assert.strictEqual(balance.toFixed(), "10000.199534852"); // 10000 + 0.1 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals(45).toFixed());

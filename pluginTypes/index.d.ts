@@ -115,6 +115,7 @@ declare module "@scom/commission-proxy/contracts/Proxy.ts" {
         data: string;
     }
     export class Proxy extends _Contract {
+        static _abi: any;
         constructor(wallet: IWallet, address?: string);
         deploy(options?: number | BigNumber | TransactionOptions): Promise<string>;
         parseAddCommissionEvent(receipt: TransactionReceipt): Proxy.AddCommissionEvent[];
