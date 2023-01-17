@@ -1,5 +1,5 @@
-/// <amd-module name="@scom/commission-proxy/contracts/Proxy.json.ts" />
-declare module "@scom/commission-proxy/contracts/Proxy.json.ts" {
+/// <amd-module name="@scom/scom-commission-proxy-contract/contracts/Proxy.json.ts" />
+declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.json.ts" {
     const _default: {
         abi: ({
             anonymous: boolean;
@@ -71,8 +71,8 @@ declare module "@scom/commission-proxy/contracts/Proxy.json.ts" {
     };
     export default _default;
 }
-/// <amd-module name="@scom/commission-proxy/contracts/Proxy.ts" />
-declare module "@scom/commission-proxy/contracts/Proxy.ts" {
+/// <amd-module name="@scom/scom-commission-proxy-contract/contracts/Proxy.ts" />
+declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.ts" {
     import { IWallet, Contract as _Contract, TransactionReceipt, BigNumber, Event, TransactionOptions } from "@ijstech/eth-contract";
     export interface IDistributionsParams {
         param1: string;
@@ -202,13 +202,13 @@ declare module "@scom/commission-proxy/contracts/Proxy.ts" {
         }
     }
 }
-/// <amd-module name="@scom/commission-proxy/contracts/index.ts" />
-declare module "@scom/commission-proxy/contracts/index.ts" {
-    export { Proxy } from "@scom/commission-proxy/contracts/Proxy.ts";
+/// <amd-module name="@scom/scom-commission-proxy-contract/contracts/index.ts" />
+declare module "@scom/scom-commission-proxy-contract/contracts/index.ts" {
+    export { Proxy } from "@scom/scom-commission-proxy-contract/contracts/Proxy.ts";
 }
-/// <amd-module name="@scom/commission-proxy" />
-declare module "@scom/commission-proxy" {
-    import * as Contracts from "@scom/commission-proxy/contracts/index.ts";
+/// <amd-module name="@scom/scom-commission-proxy-contract" />
+declare module "@scom/scom-commission-proxy-contract" {
+    import * as Contracts from "@scom/scom-commission-proxy-contract/contracts/index.ts";
     export { Contracts };
     import { IWallet } from '@ijstech/eth-wallet';
     export interface IDeployOptions {

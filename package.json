@@ -1,5 +1,5 @@
 {
-    "name": "@scom/commission-proxy",
+    "name": "@scom/scom-commission-proxy-contract",
     "version": "0.1.2",
     "main": "lib/index.js",
     "types": "types/index.d.ts",
