@@ -87,7 +87,7 @@ describe('proxy', function() {
         let receipt = await proxy.tokenIn({target,tokensIn,data});
         print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
-        print(distributor.parseAddCommissionEvent(receipt));
+        print(proxy.parseAddCommissionEvent(receipt));
         print(product1155.parseTransferSingleEvent(receipt));
     }
     async function buyProductByETH(){
@@ -112,7 +112,7 @@ describe('proxy', function() {
         let receipt = await proxy.ethIn({target,commissions,data}, Utils.toDecimals(amountIn + 0.010 + 0.015));
         print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
-        print(distributor.parseAddCommissionEvent(receipt));
+        print(proxy.parseAddCommissionEvent(receipt));
         print(product1155.parseTransferSingleEvent(receipt));
     }
     before(async function(){
@@ -187,12 +187,10 @@ describe('proxy', function() {
     });
 
     let proxy: Contracts.Proxy;
-    let distributor: Contracts.Distributor;
     it('deploy', async function(){
         let result = await deploy(wallet);
 
         proxy = new Contracts.Proxy(wallet, result.proxy);
-        distributor = new Contracts.Distributor(wallet, result.distributor);
     });
 
     it('Buy product by token', async function(){
@@ -202,14 +200,14 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), "897.5"); // 1000 - 100 - 1.0 - 1.5
         balance = await product1155.balanceOf({account:trader, id:1});
         assert.strictEqual(balance.toFixed(), "4");
-        let lastBalance = await distributor.lastBalance(busd.address);
+        let lastBalance = await proxy.lastBalance(busd.address);
         let decimals = await busd.decimals;
         assert.strictEqual(lastBalance.toFixed(), Utils.toDecimals(2.5, decimals).toFixed());
 
         wallet.defaultAccount = referrer1;
-        balance = await distributor.distributions({param1:referrer1, param2:busd.address});
+        balance = await proxy.distributions({param1:referrer1, param2:busd.address});
         assert.strictEqual(balance.toFixed(), "1000000000000000000");
-        await distributor.claim(busd.address);
+        await proxy.claim(busd.address);
         balance = await busd.balanceOf(referrer1);
         assert.strictEqual(balance.toFixed(), "1");
     });
@@ -220,22 +218,22 @@ describe('proxy', function() {
         let balance: BigNumber;
         balance = await wallet.balanceOf(trader);
         print(balance)
-        assert.strictEqual(balance.toFixed(), "9998.97402604"); // 10000 - 1 - 0.010 - 0.015 - gas
+        assert.strictEqual(balance.toFixed(), "9998.974077464"); // 10000 - 1 - 0.010 - 0.015 - gas
         balance = await product1155.balanceOf({account:trader, id:2});
         assert.strictEqual(balance.toFixed(), "4");
 
         wallet.defaultAccount = referrer1;
-        balance = await distributor.distributions({param1:referrer1, param2:Utils.nullAddress});
+        balance = await proxy.distributions({param1:referrer1, param2:Utils.nullAddress});
         assert.strictEqual(balance.toFixed(), "10000000000000000");
 
-        await distributor.claim(Utils.nullAddress);
+        await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1);
-        assert.strictEqual(balance.toFixed(), "10000.009798412"); // 10000 + 0.010 - gas
+        assert.strictEqual(balance.toFixed(), "10000.0097982"); // 10000 + 0.010 - gas
     });
 
     it('Buy product by token again', async function(){
         await buyProductByToken();
-        let lastBalance = await distributor.lastBalance(busd.address);
+        let lastBalance = await proxy.lastBalance(busd.address);
         let decimals = await busd.decimals;
         assert.strictEqual(lastBalance.toFixed(), Utils.toDecimals(4, decimals).toFixed());
     });
