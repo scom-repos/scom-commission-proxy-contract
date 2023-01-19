@@ -29,6 +29,26 @@ declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.json.ts" {
             type: string;
             anonymous?: undefined;
         } | {
+            inputs: {
+                internalType: string;
+                name: string;
+                type: string;
+            }[];
+            name: string;
+            outputs: {
+                components: {
+                    internalType: string;
+                    name: string;
+                    type: string;
+                }[];
+                internalType: string;
+                name: string;
+                type: string;
+            }[];
+            stateMutability: string;
+            type: string;
+            anonymous?: undefined;
+        } | {
             inputs: ({
                 internalType: string;
                 name: string;
@@ -74,6 +94,10 @@ declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.json.ts" {
 /// <amd-module name="@scom/scom-commission-proxy-contract/contracts/Proxy.ts" />
 declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.ts" {
     import { IWallet, Contract as _Contract, TransactionReceipt, BigNumber, Event, TransactionOptions } from "@ijstech/eth-contract";
+    export interface IClaimantIdsParams {
+        param1: string;
+        param2: string;
+    }
     export interface IDistributionsParams {
         param1: string;
         param2: string;
@@ -86,6 +110,10 @@ declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.ts" {
         }[];
         data: string;
     }
+    export interface IGetClaimantsInfoParams {
+        fromId: number | BigNumber;
+        count: number | BigNumber;
+    }
     export interface IProxyCallParams {
         target: string;
         tokensIn: {
@@ -96,6 +124,7 @@ declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.ts" {
                 to: string;
                 amount: number | BigNumber;
             }[];
+            totalCommissions: number | BigNumber;
         }[];
         to: string;
         tokensOut: string[];
@@ -111,6 +140,7 @@ declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.ts" {
                 to: string;
                 amount: number | BigNumber;
             }[];
+            totalCommissions: number | BigNumber;
         };
         data: string;
     }
@@ -138,6 +168,19 @@ declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.ts" {
             call: (tokens: string[], options?: TransactionOptions) => Promise<void>;
             txData: (tokens: string[], options?: TransactionOptions) => Promise<string>;
         };
+        claimantIdCount: {
+            (options?: TransactionOptions): Promise<BigNumber>;
+        };
+        claimantIds: {
+            (params: IClaimantIdsParams, options?: TransactionOptions): Promise<BigNumber>;
+        };
+        claimantsInfo: {
+            (param1: number | BigNumber, options?: TransactionOptions): Promise<{
+                claimant: string;
+                token: string;
+                balance: BigNumber;
+            }>;
+        };
         distributions: {
             (params: IDistributionsParams, options?: TransactionOptions): Promise<BigNumber>;
         };
@@ -145,6 +188,13 @@ declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.ts" {
             (params: IEthInParams, options?: number | BigNumber | TransactionOptions): Promise<TransactionReceipt>;
             call: (params: IEthInParams, options?: number | BigNumber | TransactionOptions) => Promise<void>;
             txData: (params: IEthInParams, options?: number | BigNumber | TransactionOptions) => Promise<string>;
+        };
+        getClaimantsInfo: {
+            (params: IGetClaimantsInfoParams, options?: TransactionOptions): Promise<{
+                claimant: string;
+                token: string;
+                balance: BigNumber;
+            }[]>;
         };
         lastBalance: {
             (param1: string, options?: TransactionOptions): Promise<BigNumber>;

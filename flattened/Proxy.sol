@@ -553,10 +553,19 @@ contract Proxy {
         uint256 amount;
         bool directTransfer;
         Commission[] commissions;
+        uint256 totalCommissions;
+    }
+    struct ClaimantInfo {
+        address claimant;
+        IERC20 token;
+        uint256 balance;
     }
 
+    uint256 public claimantIdCount;
     mapping(IERC20 => uint256) public lastBalance;
     mapping(address => mapping(IERC20 => uint256)) public distributions;
+    mapping(uint256 => ClaimantInfo) public claimantsInfo; //claimantsInfo[id] = ClaimantInfo;
+    mapping(address => mapping(IERC20 => uint256)) public claimantIds; //claimantIds[address][IERC20] = id;
 
     receive() external payable {}
 
@@ -565,11 +574,38 @@ contract Proxy {
         token.safeTransferFrom(msg.sender, address(this), amount);
         balance = token.balanceOf(address(this)) - balance;
     }
+
     function safeTransferETH(address to, uint value) internal {
         (bool success,) = to.call{value:value}(new bytes(0));
         require(success, 'TransferHelper: ETH_TRANSFER_FAILED');
     }
 
+    function addToDistributions(address claimant, IERC20 token, uint256 amount) internal {
+        if (claimantIds[claimant][token] == 0) {
+            ++claimantIdCount;
+            claimantsInfo[claimantIdCount] = ClaimantInfo({
+                claimant: claimant,
+                token: token,
+                balance: 0
+            });
+            claimantIds[claimant][token] = claimantIdCount;
+        }
+        else {
+            uint256 claimantId = claimantIds[claimant][token];
+            claimantsInfo[claimantId].balance += amount;
+        }
+        distributions[claimant][token] += amount;
+    }
+
+    function getClaimantsInfo(uint256 fromId, uint256 count) external view returns (ClaimantInfo[] memory claimantInfoList) {
+        claimantInfoList = new ClaimantInfo[](count);
+        uint256 currId = fromId;
+        for (uint256 i = 0; i < count; i++) {
+            claimantInfoList[i] = claimantsInfo[currId];
+            currId++;
+        }
+    }
+    
     function tokenIn(address target, TokensIn calldata tokensIn, bytes memory data) external {
         // transfer token to target 
         TokensIn calldata transfer = tokensIn;
@@ -578,23 +614,23 @@ contract Proxy {
         for (uint256 j = 0 ; j < length2 ; j++ ){
             Commission calldata commission = transfer.commissions[j];
             totalCommissions += commission.amount;
-            distributions[commission.to][tokensIn.token] += commission.amount;
+            addToDistributions(commission.to, tokensIn.token, commission.amount);   
             emit AddCommission(commission.to, tokensIn.token, commission.amount);
         }
-        uint amount = transfer.amount - totalCommissions;
+        uint amount;
 
         lastBalance[transfer.token] += totalCommissions;
 
         // transfer / approve tokens to target
         if (transfer.directTransfer) {
-            uint256 actualTotalCommission = _transferAssetFrom(transfer.token, totalCommissions);
+            uint256 actualTotalCommission = _transferAssetFrom(transfer.token, transfer.totalCommissions);
             require(actualTotalCommission >= totalCommissions, "commission amount not matched");
-
+            amount = transfer.amount - transfer.totalCommissions;
             transfer.token.safeTransferFrom(msg.sender, target, amount);
         } else {
             uint256 actualAmount = _transferAssetFrom(transfer.token, transfer.amount);
             require(actualAmount >= transfer.amount, "commission amount not matched");
-
+            amount = actualAmount - totalCommissions;
             // optional, may make a list of tokens need to reset first
             transfer.token.safeApprove(target, 0);
             transfer.token.safeApprove(target, amount);
@@ -619,7 +655,7 @@ contract Proxy {
         for (uint256 j = 0 ; j < length2 ; j++ ){
             Commission calldata commission = commissions[j];
             totalCommissions += commission.amount;
-            distributions[commission.to][IERC20(address(0))] += commission.amount;
+            addToDistributions(commission.to, IERC20(address(0)), commission.amount);  
             emit AddCommission(commission.to, IERC20(address(0)), commission.amount);
         }
         uint amount = msg.value - totalCommissions;
@@ -652,28 +688,29 @@ contract Proxy {
             for (uint256 j = 0 ; j < length2 ; j++ ){
                 Commission calldata commission = transfer.commissions[j];
                 totalCommissions += commission.amount;
-                distributions[commission.to][transfer.token] += commission.amount;
-                emit AddCommission(commission.to, transfer.token, commission.amount); // distributions[commission.to][token]
+                addToDistributions(commission.to, transfer.token, commission.amount); 
+                emit AddCommission(commission.to, transfer.token, commission.amount);
             }
             }
-            uint amount = transfer.amount - totalCommissions;
+            uint amount;
             lastBalance[transfer.token] += totalCommissions;
 
             if (address(transfer.token) == address(0)) {
                 require(ethAmount == 0, "more than one ETH transfer");
                 require(msg.value == transfer.amount, "ETH amount not matched");
+                amount = transfer.amount - totalCommissions;
                 ethAmount = amount;
             } else {
                 // transfer / approve tokens to target
-                if (transfer.directTransfer) {
-                    uint256 actualTotalCommission = _transferAssetFrom(transfer.token, totalCommissions);
+                if (transfer.directTransfer) {               
+                    uint256 actualTotalCommission = _transferAssetFrom(transfer.token, transfer.totalCommissions);
                     require(actualTotalCommission >= totalCommissions, "commission amount not matched");
-
+                    amount = transfer.amount - transfer.totalCommissions;
                     transfer.token.safeTransferFrom(msg.sender, target, amount);
                 } else {
                     uint256 actualAmount = _transferAssetFrom(transfer.token, transfer.amount);
-                    require(actualAmount >= transfer.amount, "commission amount not matched");
-
+                    require(actualAmount >= totalCommissions, "commission amount not matched");
+                    amount = actualAmount - totalCommissions;
                     // optional, may make a list of tokens need to reset first
                     transfer.token.safeApprove(target, 0);
                     transfer.token.safeApprove(target, amount);
@@ -711,8 +748,10 @@ contract Proxy {
     }
 
     // commissions
-    function claim(IERC20 token) public {
+    function _claim(IERC20 token) internal {
+        uint256 claimantId = claimantIds[msg.sender][token];
         uint256 balance = distributions[msg.sender][token];
+        claimantsInfo[claimantId].balance = 0;
         distributions[msg.sender][token] = 0;
         lastBalance[token] -= balance;
         if (address(token) == address(0)) {
@@ -722,10 +761,15 @@ contract Proxy {
         }
         emit Claim(msg.sender, token, balance);
     }
+
+    function claim(IERC20 token) external {
+        _claim(token);
+    }
+
     function claimMultiple(IERC20[] calldata tokens) external {
         uint256 length = tokens.length;
         for (uint256 i ; i < length ; i++) {
-            claim(tokens[i]);
+            _claim(tokens[i]);
         }
     }
 

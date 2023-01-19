@@ -27,6 +27,26 @@ declare const _default: {
         type: string;
         anonymous?: undefined;
     } | {
+        inputs: {
+            internalType: string;
+            name: string;
+            type: string;
+        }[];
+        name: string;
+        outputs: {
+            components: {
+                internalType: string;
+                name: string;
+                type: string;
+            }[];
+            internalType: string;
+            name: string;
+            type: string;
+        }[];
+        stateMutability: string;
+        type: string;
+        anonymous?: undefined;
+    } | {
         inputs: ({
             internalType: string;
             name: string;

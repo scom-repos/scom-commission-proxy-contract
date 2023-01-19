@@ -79,7 +79,8 @@ describe('proxy', function() {
                 commissions: [
                     {to: referrer1, amount: Utils.toDecimals(1.0, decimals)},
                     {to: referrer2, amount: Utils.toDecimals(1.5, decimals)}
-                ]
+                ],
+                totalCommissions: Utils.toDecimals(2.5, decimals)
             }
         ;
 
@@ -218,7 +219,7 @@ describe('proxy', function() {
         let balance: BigNumber;
         balance = await wallet.balanceOf(trader);
         print(balance)
-        assert.strictEqual(balance.toFixed(), "9998.974077464"); // 10000 - 1 - 0.010 - 0.015 - gas
+        assert.strictEqual(balance.toFixed(), "9998.973604346"); // 10000 - 1 - 0.010 - 0.015 - gas
         balance = await product1155.balanceOf({account:trader, id:2});
         assert.strictEqual(balance.toFixed(), "4");
 
@@ -228,7 +229,7 @@ describe('proxy', function() {
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1);
-        assert.strictEqual(balance.toFixed(), "10000.0097982"); // 10000 + 0.010 - gas
+        assert.strictEqual(balance.toFixed(), "10000.009692682"); // 10000 + 0.010 - gas
     });
 
     it('Buy product by token again', async function(){

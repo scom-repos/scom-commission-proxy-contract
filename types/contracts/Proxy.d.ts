@@ -1,4 +1,8 @@
 import { IWallet, Contract as _Contract, TransactionReceipt, BigNumber, Event, TransactionOptions } from "@ijstech/eth-contract";
+export interface IClaimantIdsParams {
+    param1: string;
+    param2: string;
+}
 export interface IDistributionsParams {
     param1: string;
     param2: string;
@@ -11,6 +15,10 @@ export interface IEthInParams {
     }[];
     data: string;
 }
+export interface IGetClaimantsInfoParams {
+    fromId: number | BigNumber;
+    count: number | BigNumber;
+}
 export interface IProxyCallParams {
     target: string;
     tokensIn: {
@@ -21,6 +29,7 @@ export interface IProxyCallParams {
             to: string;
             amount: number | BigNumber;
         }[];
+        totalCommissions: number | BigNumber;
     }[];
     to: string;
     tokensOut: string[];
@@ -36,6 +45,7 @@ export interface ITokenInParams {
             to: string;
             amount: number | BigNumber;
         }[];
+        totalCommissions: number | BigNumber;
     };
     data: string;
 }
@@ -63,6 +73,19 @@ export declare class Proxy extends _Contract {
         call: (tokens: string[], options?: TransactionOptions) => Promise<void>;
         txData: (tokens: string[], options?: TransactionOptions) => Promise<string>;
     };
+    claimantIdCount: {
+        (options?: TransactionOptions): Promise<BigNumber>;
+    };
+    claimantIds: {
+        (params: IClaimantIdsParams, options?: TransactionOptions): Promise<BigNumber>;
+    };
+    claimantsInfo: {
+        (param1: number | BigNumber, options?: TransactionOptions): Promise<{
+            claimant: string;
+            token: string;
+            balance: BigNumber;
+        }>;
+    };
     distributions: {
         (params: IDistributionsParams, options?: TransactionOptions): Promise<BigNumber>;
     };
@@ -70,6 +93,13 @@ export declare class Proxy extends _Contract {
         (params: IEthInParams, options?: number | BigNumber | TransactionOptions): Promise<TransactionReceipt>;
         call: (params: IEthInParams, options?: number | BigNumber | TransactionOptions) => Promise<void>;
         txData: (params: IEthInParams, options?: number | BigNumber | TransactionOptions) => Promise<string>;
+    };
+    getClaimantsInfo: {
+        (params: IGetClaimantsInfoParams, options?: TransactionOptions): Promise<{
+            claimant: string;
+            token: string;
+            balance: BigNumber;
+        }[]>;
     };
     lastBalance: {
         (param1: string, options?: TransactionOptions): Promise<BigNumber>;
