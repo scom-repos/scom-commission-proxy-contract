@@ -1,6 +1,3 @@
-const {Utils} = require("@ijstech/eth-wallet");
-
-
 const oswapDeployOptions = {
     govOptions: {
         minStakePeriod: 1,
@@ -12,8 +9,8 @@ const oswapDeployOptions = {
             minExeDelay: [1,1,1],
             minVoteDuration: [0,0,0],
             maxVoteDuration: [1209600,1209600,1209600],
-            minGovTokenToCreateVote: [Utils.toDecimals(100),Utils.toDecimals(200000),Utils.toDecimals(100)],
-            minQuorum: [Utils.toDecimals(0),Utils.toDecimals(1000000),Utils.toDecimals(100)]
+            minGovTokenToCreateVote: ['100','200000','100'],
+            minQuorum: ['0','1000000','100']
         }
     },
     hybridRouter: {

@@ -586,7 +586,7 @@ contract Proxy {
             claimantsInfo[claimantIdCount] = ClaimantInfo({
                 claimant: claimant,
                 token: token,
-                balance: 0
+                balance: amount
             });
             claimantIds[claimant][token] = claimantIdCount;
         }
