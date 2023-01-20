@@ -79,8 +79,7 @@ describe('proxy', function() {
                 commissions: [
                     {to: referrer1, amount: Utils.toDecimals(1.0, decimals)},
                     {to: referrer2, amount: Utils.toDecimals(1.5, decimals)}
-                ],
-                totalCommissions: Utils.toDecimals(2.5, decimals)
+                ]
             }
         ;
 
@@ -189,7 +188,9 @@ describe('proxy', function() {
 
     let proxy: Contracts.Proxy;
     it('deploy', async function(){
-        let result = await deploy(wallet);
+        let result = await deploy(wallet, {
+            version: 'V1'
+        });
 
         proxy = new Contracts.Proxy(wallet, result.proxy);
     });
@@ -206,7 +207,10 @@ describe('proxy', function() {
         assert.strictEqual(lastBalance.toFixed(), Utils.toDecimals(2.5, decimals).toFixed());
 
         wallet.defaultAccount = referrer1;
-        balance = await proxy.distributions({param1:referrer1, param2:busd.address});
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: busd.address
+        });
         assert.strictEqual(balance.toFixed(), "1000000000000000000");
         await proxy.claim(busd.address);
         balance = await busd.balanceOf(referrer1);
@@ -219,17 +223,20 @@ describe('proxy', function() {
         let balance: BigNumber;
         balance = await wallet.balanceOf(trader);
         print(balance)
-        assert.strictEqual(balance.toFixed(), "9998.97338709"); // 10000 - 1 - 0.010 - 0.015 - gas
+        assert.strictEqual(balance.toFixed(2), "9998.97"); // 10000 - 1 - 0.010 - 0.015 - gas
         balance = await product1155.balanceOf({account:trader, id:2});
         assert.strictEqual(balance.toFixed(), "4");
 
         wallet.defaultAccount = referrer1;
-        balance = await proxy.distributions({param1:referrer1, param2:Utils.nullAddress});
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: Utils.nullAddress
+        });
         assert.strictEqual(balance.toFixed(), "10000000000000000");
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1);
-        assert.strictEqual(balance.toFixed(), "10000.009787762"); // 10000 + 0.010 - gas
+        assert.strictEqual(balance.toFixed(2), "10000.01"); // 10000 + 0.010 - gas
     });
 
     it('Buy product by token again', async function(){

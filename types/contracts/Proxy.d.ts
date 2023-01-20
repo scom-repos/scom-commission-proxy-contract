@@ -3,10 +3,6 @@ export interface IClaimantIdsParams {
     param1: string;
     param2: string;
 }
-export interface IDistributionsParams {
-    param1: string;
-    param2: string;
-}
 export interface IEthInParams {
     target: string;
     commissions: {
@@ -14,6 +10,10 @@ export interface IEthInParams {
         amount: number | BigNumber;
     }[];
     data: string;
+}
+export interface IGetClaimantBalanceParams {
+    claimant: string;
+    token: string;
 }
 export interface IGetClaimantsInfoParams {
     fromId: number | BigNumber;
@@ -29,7 +29,6 @@ export interface IProxyCallParams {
             to: string;
             amount: number | BigNumber;
         }[];
-        totalCommissions: number | BigNumber;
     }[];
     to: string;
     tokensOut: string[];
@@ -45,7 +44,6 @@ export interface ITokenInParams {
             to: string;
             amount: number | BigNumber;
         }[];
-        totalCommissions: number | BigNumber;
     };
     data: string;
 }
@@ -86,13 +84,13 @@ export declare class Proxy extends _Contract {
             balance: BigNumber;
         }>;
     };
-    distributions: {
-        (params: IDistributionsParams, options?: TransactionOptions): Promise<BigNumber>;
-    };
     ethIn: {
         (params: IEthInParams, options?: number | BigNumber | TransactionOptions): Promise<TransactionReceipt>;
         call: (params: IEthInParams, options?: number | BigNumber | TransactionOptions) => Promise<void>;
         txData: (params: IEthInParams, options?: number | BigNumber | TransactionOptions) => Promise<string>;
+    };
+    getClaimantBalance: {
+        (params: IGetClaimantBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
     };
     getClaimantsInfo: {
         (params: IGetClaimantsInfoParams, options?: TransactionOptions): Promise<{

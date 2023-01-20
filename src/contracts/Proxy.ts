@@ -1,11 +1,11 @@
 import {IWallet, Contract as _Contract, Transaction, TransactionReceipt, BigNumber, Event, IBatchRequestObj, TransactionOptions} from "@ijstech/eth-contract";
 import Bin from "./Proxy.json";
 export interface IClaimantIdsParams {param1:string;param2:string}
-export interface IDistributionsParams {param1:string;param2:string}
 export interface IEthInParams {target:string;commissions:{to:string,amount:number|BigNumber}[];data:string}
+export interface IGetClaimantBalanceParams {claimant:string;token:string}
 export interface IGetClaimantsInfoParams {fromId:number|BigNumber;count:number|BigNumber}
-export interface IProxyCallParams {target:string;tokensIn:{token:string,amount:number|BigNumber,directTransfer:boolean,commissions:{to:string,amount:number|BigNumber}[],totalCommissions:number|BigNumber}[];to:string;tokensOut:string[];data:string}
-export interface ITokenInParams {target:string;tokensIn:{token:string,amount:number|BigNumber,directTransfer:boolean,commissions:{to:string,amount:number|BigNumber}[],totalCommissions:number|BigNumber};data:string}
+export interface IProxyCallParams {target:string;tokensIn:{token:string,amount:number|BigNumber,directTransfer:boolean,commissions:{to:string,amount:number|BigNumber}[]}[];to:string;tokensOut:string[];data:string}
+export interface ITokenInParams {target:string;tokensIn:{token:string,amount:number|BigNumber,directTransfer:boolean,commissions:{to:string,amount:number|BigNumber}[]};data:string}
 export class Proxy extends _Contract{
     static _abi: any = Bin.abi;
     constructor(wallet: IWallet, address?: string){
@@ -97,13 +97,13 @@ export class Proxy extends _Contract{
     claimantsInfo: {
         (param1:number|BigNumber, options?: TransactionOptions): Promise<{claimant:string,token:string,balance:BigNumber}>;
     }
-    distributions: {
-        (params: IDistributionsParams, options?: TransactionOptions): Promise<BigNumber>;
-    }
     ethIn: {
         (params: IEthInParams, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt>;
         call: (params: IEthInParams, options?: number|BigNumber|TransactionOptions) => Promise<void>;
         txData: (params: IEthInParams, options?: number|BigNumber|TransactionOptions) => Promise<string>;
+    }
+    getClaimantBalance: {
+        (params: IGetClaimantBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
     }
     getClaimantsInfo: {
         (params: IGetClaimantsInfoParams, options?: TransactionOptions): Promise<{claimant:string,token:string,balance:BigNumber}[]>;
@@ -147,12 +147,12 @@ export class Proxy extends _Contract{
             };
         }
         this.claimantsInfo = claimantsInfo_call
-        let distributionsParams = (params: IDistributionsParams) => [params.param1,params.param2];
-        let distributions_call = async (params: IDistributionsParams, options?: TransactionOptions): Promise<BigNumber> => {
-            let result = await this.call('distributions',distributionsParams(params),options);
+        let getClaimantBalanceParams = (params: IGetClaimantBalanceParams) => [params.claimant,params.token];
+        let getClaimantBalance_call = async (params: IGetClaimantBalanceParams, options?: TransactionOptions): Promise<BigNumber> => {
+            let result = await this.call('getClaimantBalance',getClaimantBalanceParams(params),options);
             return new BigNumber(result);
         }
-        this.distributions = distributions_call
+        this.getClaimantBalance = getClaimantBalance_call
         let getClaimantsInfoParams = (params: IGetClaimantsInfoParams) => [this.wallet.utils.toString(params.fromId),this.wallet.utils.toString(params.count)];
         let getClaimantsInfo_call = async (params: IGetClaimantsInfoParams, options?: TransactionOptions): Promise<{claimant:string,token:string,balance:BigNumber}[]> => {
             let result = await this.call('getClaimantsInfo',getClaimantsInfoParams(params),options);
@@ -219,7 +219,7 @@ export class Proxy extends _Contract{
             call:ethIn_call
             , txData:ethIn_txData
         });
-        let proxyCallParams = (params: IProxyCallParams) => [params.target,params.tokensIn.map(e=>([e.token,this.wallet.utils.toString(e.amount),e.directTransfer,e.commissions.map(e=>([e.to,this.wallet.utils.toString(e.amount)])),this.wallet.utils.toString(e.totalCommissions)])),params.to,params.tokensOut,this.wallet.utils.stringToBytes(params.data)];
+        let proxyCallParams = (params: IProxyCallParams) => [params.target,params.tokensIn.map(e=>([e.token,this.wallet.utils.toString(e.amount),e.directTransfer,e.commissions.map(e=>([e.to,this.wallet.utils.toString(e.amount)]))])),params.to,params.tokensOut,this.wallet.utils.stringToBytes(params.data)];
         let proxyCall_send = async (params: IProxyCallParams, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt> => {
             let result = await this.send('proxyCall',proxyCallParams(params),options);
             return result;
@@ -252,7 +252,7 @@ export class Proxy extends _Contract{
             call:skim_call
             , txData:skim_txData
         });
-        let tokenInParams = (params: ITokenInParams) => [params.target,[params.tokensIn.token,this.wallet.utils.toString(params.tokensIn.amount),params.tokensIn.directTransfer,params.tokensIn.commissions.map(e=>([e.to,this.wallet.utils.toString(e.amount)])),this.wallet.utils.toString(params.tokensIn.totalCommissions)],this.wallet.utils.stringToBytes(params.data)];
+        let tokenInParams = (params: ITokenInParams) => [params.target,[params.tokensIn.token,this.wallet.utils.toString(params.tokensIn.amount),params.tokensIn.directTransfer,params.tokensIn.commissions.map(e=>([e.to,this.wallet.utils.toString(e.amount)]))],this.wallet.utils.stringToBytes(params.data)];
         let tokenIn_send = async (params: ITokenInParams, options?: TransactionOptions): Promise<TransactionReceipt> => {
             let result = await this.send('tokenIn',tokenInParams(params),options);
             return result;

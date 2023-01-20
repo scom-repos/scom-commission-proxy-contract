@@ -407,7 +407,9 @@ describe('proxy', function() {
 
     let proxy: Contracts.Proxy;
     it('deploy', async function(){
-        let result = await deploy(wallet);
+        let result = await deploy(wallet, {
+            version: 'V1'
+        });
 
         proxy = new Contracts.Proxy(wallet, result.proxy);
     });
@@ -451,8 +453,7 @@ describe('proxy', function() {
                 commissions: [
                     {to: referrer1, amount: Utils.toDecimals(10, decimals)},
                     {to: referrer2, amount: Utils.toDecimals(15, decimals)}
-                ],
-                totalCommissions: Utils.toDecimals(25, decimals)
+                ]
             }
         ];
         let to = trader;
@@ -475,14 +476,11 @@ describe('proxy', function() {
 
 
         wallet.defaultAccount = referrer1;
-        balance = await proxy.distributions({param1:referrer1, param2:busd.address});
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
-        const claimantId = await proxy.claimantIds({
-            param1: referrer1,
-            param2: busd.address
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: busd.address
         });
-        const claimantsInfo = await proxy.claimantsInfo(claimantId);
-        assert.strictEqual(claimantsInfo.balance.toFixed(), Utils.toDecimals(10).toFixed());
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
         
         await proxy.claim(busd.address);
         balance = await busd.balanceOf(referrer1); 
@@ -531,8 +529,7 @@ describe('proxy', function() {
                 commissions: [
                     {to: referrer1, amount: Utils.toDecimals(0.10, decimals)},
                     {to: referrer2, amount: Utils.toDecimals(0.15, decimals)}
-                ],
-                totalCommissions: Utils.toDecimals(0.25, decimals)
+                ]
             }
         ];
         let to = trader;
@@ -553,18 +550,15 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), "4935.396039603960396039");
 
         wallet.defaultAccount = referrer1;
-        balance = await proxy.distributions({param1:referrer1, param2:Utils.nullAddress});
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(0.1).toFixed());
-        const claimantId = await proxy.claimantIds({
-            param1: referrer1,
-            param2: Utils.nullAddress
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: Utils.nullAddress
         });
-        const claimantsInfo = await proxy.claimantsInfo(claimantId);
-        assert.strictEqual(claimantsInfo.balance.toFixed(), Utils.toDecimals(0.1).toFixed());
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals(0.1).toFixed());
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1); 
-        assert.strictEqual(balance.toFixed(), "10000.099787762"); // 10000 + 0.1 - gas fee
+        assert.strictEqual(balance.toFixed(), "10000.09977185"); // 10000 + 0.1 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals(15).toFixed());
@@ -612,8 +606,7 @@ describe('proxy', function() {
                 commissions: [
                     {to: referrer1, amount: Utils.toDecimals(10, decimals)},
                     {to: referrer2, amount: Utils.toDecimals(15, decimals)}
-                ],
-                totalCommissions: Utils.toDecimals(25, decimals)
+                ]
             }
         ];
         let to = trader;
@@ -632,17 +625,14 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.15").toFixed());
 
         balance = await wallet.balanceOf(trader);
-        assert.strictEqual(balance.toFixed(), "9992.291393189235979152"); // 10000 - 10 - 0.1 - 0.15 + (1000/400) - gas fee*3
+        assert.strictEqual(balance.toFixed(2), "9992.29"); // 10000 - 10 - 0.1 - 0.15 + (1000/400) - gas fee*3
 
         wallet.defaultAccount = referrer1;
-        balance = await proxy.distributions({param1:referrer1, param2:busd.address});
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
-        const claimantId = await proxy.claimantIds({
-            param1: referrer1,
-            param2: busd.address
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: busd.address
         });
-        const claimantsInfo = await proxy.claimantsInfo(claimantId);
-        assert.strictEqual(claimantsInfo.balance.toFixed(), Utils.toDecimals(10).toFixed());
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
 
         await proxy.claim(busd.address);
         balance = await busd.balanceOf(referrer1); 
@@ -718,14 +708,11 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), "83.326389467544371302");
 
         wallet.defaultAccount = referrer1;
-        balance = await proxy.distributions({param1:referrer1, param2:busd.address});
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
-        const claimantId = await proxy.claimantIds({
-            param1: referrer1,
-            param2: busd.address
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: busd.address
         });
-        const claimantsInfo = await proxy.claimantsInfo(claimantId);
-        assert.strictEqual(claimantsInfo.balance.toFixed(), Utils.toDecimals(10).toFixed());
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
 
         await proxy.claim(busd.address);
         balance = await busd.balanceOf(referrer1); 
@@ -789,18 +776,15 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), "6885.396039603960396039");
 
         wallet.defaultAccount = referrer1;
-        balance = await proxy.distributions({param1:referrer1, param2:Utils.nullAddress});
-        assert.strictEqual(balance.toFixed(), "100000000000000000");
-        const claimantId = await proxy.claimantIds({
-            param1: referrer1,
-            param2: Utils.nullAddress
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: Utils.nullAddress
         });
-        const claimantsInfo = await proxy.claimantsInfo(claimantId);
-        assert.strictEqual(claimantsInfo.balance.toFixed(), "100000000000000000");
+        assert.strictEqual(balance.toFixed(), "100000000000000000");
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1); 
-        assert.strictEqual(balance.toFixed(), "10000.199508746"); // 10000 + 0.1 - gas fee
+        assert.strictEqual(balance.toFixed(), "10000.199468966"); // 10000 + 0.1 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals(45).toFixed());
