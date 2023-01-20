@@ -3,7 +3,7 @@ export {Contracts};
 import {IWallet, BigNumber, Utils} from '@ijstech/eth-wallet';
 
 export interface IDeployOptions {
-    version: string;
+    version?: string;
 };
 export interface IDeployResult {
     proxy: string;

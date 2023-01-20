@@ -511,7 +511,9 @@ define("@scom/scom-commission-proxy-contract", ["require", "exports", "@scom/sco
     ;
     ;
     var progressHandler;
-    exports.DefaultDeployOptions = {};
+    exports.DefaultDeployOptions = {
+        version: 'V1'
+    };
     function progress(msg) {
         if (typeof (progressHandler) == 'function') {
             progressHandler(msg);
@@ -520,7 +522,13 @@ define("@scom/scom-commission-proxy-contract", ["require", "exports", "@scom/sco
     }
     async function deploy(wallet, options) {
         progress('Contracts deployment start');
-        let proxy = new Contracts.Proxy(wallet);
+        let proxy;
+        if (options.version == 'V2') {
+            proxy = new Contracts.ProxyV2(wallet);
+        }
+        else {
+            proxy = new Contracts.Proxy(wallet);
+        }
         progress('Deploy Proxy');
         await proxy.deploy();
         progress('Proxy deployed ' + proxy.address);

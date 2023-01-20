@@ -515,6 +515,7 @@ declare module "@scom/scom-commission-proxy-contract" {
     export { Contracts };
     import { IWallet } from '@ijstech/eth-wallet';
     export interface IDeployOptions {
+        version?: string;
     }
     export interface IDeployResult {
         proxy: string;

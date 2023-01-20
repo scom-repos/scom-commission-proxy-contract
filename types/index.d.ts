@@ -2,6 +2,7 @@ import * as Contracts from './contracts/index';
 export { Contracts };
 import { IWallet } from '@ijstech/eth-wallet';
 export interface IDeployOptions {
+    version?: string;
 }
 export interface IDeployResult {
     proxy: string;
