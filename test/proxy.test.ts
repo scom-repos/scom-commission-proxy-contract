@@ -1,12 +1,12 @@
 import 'mocha';
-import {print} from './helper';
+import { print } from './helper';
 
 import Config from './config';
 import networks from "../data/networks";
 
-import {Utils, Wallet, Contract, BigNumber, TransactionReceipt, Erc20} from "@ijstech/eth-wallet";
+import { Utils, Wallet, Contract, BigNumber, TransactionReceipt, Erc20 } from "@ijstech/eth-wallet";
 import * as OSWAP from "@scom/oswap-openswap-contract";
-import {WETH9 as WETH, MockPriceOracle, MockErc20, MockOracleAdaptor3} from "./src/contracts";
+import { WETH9 as WETH, MockPriceOracle, MockErc20, MockOracleAdaptor3 } from "./src/contracts";
 
 import Ganache from "ganache";
 import * as assert from 'assert';
@@ -47,10 +47,10 @@ const UNI_PRICE_USD = 20;
 const BNB_PRICE_USD = 400;
 const ETH_PRICE_USD = 4000;
 
-function isLocalNetwork(chainName:string){
-    return chainName.includes("ganache")||chainName.includes("Ganache")||chainName.includes("hardhat")||chainName.includes("Hardhat");
+function isLocalNetwork(chainName: string) {
+    return chainName.includes("ganache") || chainName.includes("Ganache") || chainName.includes("hardhat") || chainName.includes("Hardhat");
 }
-async function voteToPass(chain:string, wallet: Wallet, oswapContracts: OSWAP.IDeploymentContracts, executor, type, quorum, param):Promise<TransactionReceipt> {
+async function voteToPass(chain: string, wallet: Wallet, oswapContracts: OSWAP.IDeploymentContracts, executor, type, quorum, param): Promise<TransactionReceipt> {
     let origAccount = wallet.defaultAccount;
     wallet.account = Config.oswapAccounts[0];
     let voting = await newVote(chain, wallet, oswapContracts, executor, type, quorum, param);
@@ -58,8 +58,8 @@ async function voteToPass(chain:string, wallet: Wallet, oswapContracts: OSWAP.ID
 
     let now = <number>(await wallet.web3.eth.getBlock('latest')).timestamp;
     let end = (await voting.voteEndTime()).plus(await voting.executeDelay()).toNumber() + networks[chain].blockTime;
-if (end>now) {
-        await wallet.setBlockTime(end-now+1);
+    if (end > now) {
+        await wallet.setBlockTime(end - now + 1);
         // console.log("wait for " + (end-now+1) + " sec")
         // await Utils.sleep((end-now)*1000);
         // if (isLocalNetwork(chain))
@@ -68,14 +68,14 @@ if (end>now) {
     wallet.defaultAccount = origAccount;
     return await voting.execute();
 }
-async function newVote(chain:string, wallet: Wallet, oswapContracts: OSWAP.IDeploymentContracts, executor, type, quorum, param):Promise<OSWAP.Contracts.OAXDEX_VotingContract> {
+async function newVote(chain: string, wallet: Wallet, oswapContracts: OSWAP.IDeploymentContracts, executor, type, quorum, param): Promise<OSWAP.Contracts.OAXDEX_VotingContract> {
     if (isLocalNetwork(chain))
         await wallet.send(wallet.defaultAccount, 0); // mine one block
     let now = <number>(await wallet.web3.eth.getBlock('latest')).timestamp;
     let votingConfig = (await oswapContracts.governance.votingConfigs(Utils.stringToBytes32("vote") as string));
     quorum = votingConfig.minQuorum;
     let threshold = Utils.toDecimals("0.5");
-    let voteEndTime = now + votingConfig.minVoteDuration.toNumber() + (isLocalNetwork(chain) ? TIME_FOR_VOTING : 4*networks[chain].blockTime);
+    let voteEndTime = now + votingConfig.minVoteDuration.toNumber() + (isLocalNetwork(chain) ? TIME_FOR_VOTING : 4 * networks[chain].blockTime);
     let exeDelay = votingConfig.minExeDelay.toNumber();
 
     let receipt = await oswapContracts.registry.newVote({
@@ -96,13 +96,13 @@ async function newVote(chain:string, wallet: Wallet, oswapContracts: OSWAP.IDepl
 
     return voting;
 }
-async function expectToFail<Type>(f:Promise<Type>, error:string|string[]): Promise<void> {
+async function expectToFail<Type>(f: Promise<Type>, error: string | string[]): Promise<void> {
     try {
         await f;
         throw new Error("Exception not thrown");
-    } catch(e) {
-        if ((Array.isArray(error) && error.some(f=>e.message.includes(f))) ||
-            e.message.includes(error)){
+    } catch (e) {
+        if ((Array.isArray(error) && error.some(f => e.message.includes(f))) ||
+            e.message.includes(error)) {
             return console.log("exception thrown as expected");
         } else {
             throw e;
@@ -111,26 +111,28 @@ async function expectToFail<Type>(f:Promise<Type>, error:string|string[]): Promi
 }
 function genGanache(idx: number) {
     let networkName = Config.networks[idx].chainName;
-    let networkId:number = networks[networkName].networkId;;
-    return Ganache.provider({chainId:networkId, network_id:networkId, accounts:Config.networks[idx].accounts.map(e=>{
-        return {secretKey: e.privateKey, balance: "0x"+Utils.toDecimals(10000).toString(16)};
-    })});
+    let networkId: number = networks[networkName].networkId;;
+    return Ganache.provider({
+        chainId: networkId, network_id: networkId, accounts: Config.networks[idx].accounts.map(e => {
+            return { secretKey: e.privateKey, balance: "0x" + Utils.toDecimals(10000).toString(16) };
+        })
+    });
 }
-describe('proxy', function() {
-    if (Config.networks.some(e=>networks[e.chainName]
-                             && networks[e.chainName].rpc
-                             && networks[e.chainName].rpc.includes("infura.io"))
-                             && !process.env.INFURA_ID){
+describe('proxy', function () {
+    if (Config.networks.some(e => networks[e.chainName]
+        && networks[e.chainName].rpc
+        && networks[e.chainName].rpc.includes("infura.io"))
+        && !process.env.INFURA_ID) {
         console.log("Please set env INFURA_ID, e.g.: INFURA_ID=<INFURA_ID> npm run test");
         return process.exit();
     }
-    if (!Config.oswapAccounts[0].privateKey.startsWith("0x")){
+    if (!Config.oswapAccounts[0].privateKey.startsWith("0x")) {
         console.log("Please set priv key of " + Config.oswapAccounts[0].address + " in config");
         return process.exit();
     }
 
     let chainName = Config.networks[0].chainName;
-    let chainId:number = networks[chainName].networkId;
+    let chainId: number = networks[chainName].networkId;
 
     let accounts: string[];
     let wallet: Wallet;
@@ -145,19 +147,19 @@ describe('proxy', function() {
     let admin: string;
     let oswapAdmin: string;
     let lp1: string;
-    let lp2: string;    
+    let lp2: string;
     let trader: string;
     let referrer1: string;
     let referrer2: string;
 
-    before(async function(){
-        accounts = Config.networks[0].accounts.map(e=>e.address);
+    before(async function () {
+        accounts = Config.networks[0].accounts.map(e => e.address);
         console.log(accounts);
 
         if (!Address[chainName]) Address[chainName] = {};
         let provider =  // chainName=="localHardhat" ? hardhat.web3.currentProvider :
-                        networks[chainName].rpc ? new Web3.providers.HttpProvider(networks[chainName].rpc, networks[chainName].rpcOptions) :
-                        Ganache.provider({logging:{quiet:true},wallet:{totalAccounts:20,mnemonic:"test test test test test test test test test test test junk",defaultBalance:10000}});
+            networks[chainName].rpc ? new Web3.providers.HttpProvider(networks[chainName].rpc, networks[chainName].rpcOptions) :
+                Ganache.provider({ logging: { quiet: true }, wallet: { totalAccounts: 20, mnemonic: "test test test test test test test test test test test junk", defaultBalance: 10000 } });
 
         wallet = new Wallet(provider, Config.networks[0].accounts);
 
@@ -172,24 +174,24 @@ describe('proxy', function() {
 
         wallet.defaultAccount = admin;
     });
-    before('Deploy weth', async function(){
-        if (Address[chainName].openswap && Address[chainName].openswap.weth){
+    before('Deploy weth', async function () {
+        if (Address[chainName].openswap && Address[chainName].openswap.weth) {
             weth = new WETH(wallet, Address[chainName].openswap.weth);
-        } else if (networks[chainName].weth9Token){
+        } else if (networks[chainName].weth9Token) {
             weth = new WETH(wallet, networks[chainName].weth9Token);
         } else {
             weth = new WETH(wallet);
             await weth.deploy();
             Address[chainName].weth = weth.address;
-            fs.writeFileSync(outputPath, JSON.stringify(Address,null,"    "), "utf8");
+            fs.writeFileSync(outputPath, JSON.stringify(Address, null, "    "), "utf8");
         }
     });
-    async function checkBalance(wallet:Wallet, chain:string, oswap:OSWAP.OpenSwap, address:string, amount:BigNumber){
-        if ((await oswap.balanceOf(address)).lt(amount)){
-            if (isLocalNetwork(chain)){
+    async function checkBalance(wallet: Wallet, chain: string, oswap: OSWAP.OpenSwap, address: string, amount: BigNumber) {
+        if ((await oswap.balanceOf(address)).lt(amount)) {
+            if (isLocalNetwork(chain)) {
                 let _address = wallet.defaultAccount;
                 wallet.defaultAccount = admin;//Config.oswapAccounts[0].address;
-                await oswap.mint({address:address,amount:amount.times(10)});
+                await oswap.mint({ address: address, amount: amount.times(10) });
                 wallet.defaultAccount = _address;
             } else {
                 console.log(address + " doesn't have enough oswap");
@@ -197,14 +199,14 @@ describe('proxy', function() {
             }
         }
     }
-    before('Deploy oswap\'s contracts', async function(){
+    before('Deploy oswap\'s contracts', async function () {
         // deploy oswap's contracts
         let contracts = Address[chainName].openswap;
         if (!contracts) {
             console.log("deploy oswap contracts on main chain");
-            contracts = await OSWAP.deploy(wallet, Object.assign({tokens: {weth: weth.address}}, Config.oswapDeployOptions));
+            contracts = await OSWAP.deploy(wallet, Object.assign({ tokens: { weth: weth.address } }, Config.oswapDeployOptions));
             Address[chainName].openswap = contracts;
-            fs.writeFileSync(outputPath, JSON.stringify(Address,null,"    "), "utf8");
+            fs.writeFileSync(outputPath, JSON.stringify(Address, null, "    "), "utf8");
 
             let profile = Config.oswapDeployOptions.govOptions.profiles;
             let amount = BigNumber.max(profile.minGovTokenToCreateVote[1], profile.minQuorum[1]);
@@ -218,7 +220,7 @@ describe('proxy', function() {
             await checkBalance(wallet, chainName, oswapContracts.openSwap, Config.oswapAccounts[0].address, amount);
 
             wallet.account = Config.oswapAccounts[0];
-            await oswapContracts.openSwap.approve({spender:oswapContracts.governance.address, amount:amount});
+            await oswapContracts.openSwap.approve({ spender: oswapContracts.governance.address, amount: amount });
             await oswapContracts.governance.stake(Utils.toDecimals(amount));
             let wait = (await oswapContracts.governance.minStakePeriod()).toNumber() + networks[chainName].blockTime + 1;
             await wallet.setBlockTime(wait);
@@ -236,7 +238,7 @@ describe('proxy', function() {
             await voteToPass(chainName, wallet, oswapContracts, oswapContracts.executor, "setVotingExecutor", "1000000", [Utils.addressToBytes32Right(oswapContracts.hybridRouterRegistry.address, true), Utils.numberToBytes32(1, true)]);
         }
     });
-    before('Deploy dependent contracts', async function(){
+    before('Deploy dependent contracts', async function () {
         if (!Address[chainName].dependent)
             Address[chainName].dependent = {};
 
@@ -244,33 +246,33 @@ describe('proxy', function() {
         // tokens
         if (!Address[chainName].dependent.BUSD) {
             let token = new MockErc20(wallet);
-            await token.deploy({name:"BUSD", symbol:"BUSD", decimals:18});
+            await token.deploy({ name: "BUSD", symbol: "BUSD", decimals: 18 });
             Address[chainName].dependent.BUSD = token.address;
-            fs.writeFileSync(outputPath, JSON.stringify(Address,null,"    "), "utf8");
+            fs.writeFileSync(outputPath, JSON.stringify(Address, null, "    "), "utf8");
             console.log("BUSD " + token.address);
         }
         busd = new Erc20(wallet, Address[chainName].dependent.BUSD);
 
         if (!Address[chainName].dependent.CAKE) {
             let token = new MockErc20(wallet);
-            await token.deploy({name:"CAKE", symbol:"CAKE", decimals:18});
+            await token.deploy({ name: "CAKE", symbol: "CAKE", decimals: 18 });
             Address[chainName].dependent.CAKE = token.address;
-            fs.writeFileSync(outputPath, JSON.stringify(Address,null,"    "), "utf8");
+            fs.writeFileSync(outputPath, JSON.stringify(Address, null, "    "), "utf8");
             console.log("CAKE " + token.address);
         }
         cake = new Erc20(wallet, Address[chainName].dependent.CAKE);
 
-        if (isLocalNetwork(chainName)){
-            if ((await oswapContracts.factory.getPair({param1:busd.address, param2:cake.address})) == Utils.nullAddress) {
+        if (isLocalNetwork(chainName)) {
+            if ((await oswapContracts.factory.getPair({ param1: busd.address, param2: cake.address })) == Utils.nullAddress) {
                 wallet.defaultAccount = admin;
                 let cakeAmount = CAKE_POOL_SIZE;
                 let busdAmount = cakeAmount * CAKE_PRICE_USD;
-                await busd.mint({address: lp2, amount: busdAmount});
-                await cake.mint({address: lp2, amount: cakeAmount});
+                await busd.mint({ address: lp2, amount: busdAmount });
+                await cake.mint({ address: lp2, amount: cakeAmount });
 
                 wallet.defaultAccount = lp2;
-                await busd.approve({spender: oswapContracts.router.address, amount: busdAmount});
-                await cake.approve({spender: oswapContracts.router.address, amount: cakeAmount});
+                await busd.approve({ spender: oswapContracts.router.address, amount: busdAmount });
+                await cake.approve({ spender: oswapContracts.router.address, amount: cakeAmount });
                 await oswapContracts.router.addLiquidity({
                     tokenA: busd.address,
                     tokenB: cake.address,
@@ -282,14 +284,14 @@ describe('proxy', function() {
                     to: lp2
                 });
             }
-            if ((await oswapContracts.factory.getPair({param1:busd.address, param2:Address[chainName].weth})) == Utils.nullAddress) {
+            if ((await oswapContracts.factory.getPair({ param1: busd.address, param2: Address[chainName].weth })) == Utils.nullAddress) {
                 wallet.defaultAccount = admin;
                 let wethAmount = WETH_POOL_SIZE;
                 let busdAmount = wethAmount * BNB_PRICE_USD;
-                await busd.mint({address: lp2, amount: busdAmount});
+                await busd.mint({ address: lp2, amount: busdAmount });
 
                 wallet.defaultAccount = lp2;
-                await busd.approve({spender: oswapContracts.router.address, amount: busdAmount});
+                await busd.approve({ spender: oswapContracts.router.address, amount: busdAmount });
                 await oswapContracts.router.addLiquidityETH({
                     token: busd.address,
                     amountTokenDesired: Utils.toDecimals(busdAmount, await busd.decimals),
@@ -299,27 +301,27 @@ describe('proxy', function() {
                     to: lp2
                 }, Utils.toDecimals(wethAmount));
             }
-            if ((await oswapContracts.oracleFactory.oracles({param1:busd.address, param2:cake.address})) == Utils.nullAddress) {
+            if ((await oswapContracts.oracleFactory.oracles({ param1: busd.address, param2: cake.address })) == Utils.nullAddress) {
                 let oracle = new MockOracleAdaptor3(wallet);
-                await oracle.deploy({weth:weth.address, decimals:18, tokens:[busd.address, cake.address], prices:[Utils.toDecimals(1),Utils.toDecimals(CAKE_PRICE_USD)]});
+                await oracle.deploy({ weth: weth.address, decimals: 18, tokens: [busd.address, cake.address], prices: [Utils.toDecimals(1), Utils.toDecimals(CAKE_PRICE_USD)] });
                 if (new BigNumber(busd.address.toLowerCase()).lt(cake.address.toLowerCase()))
-                    await voteToPass(chainName, wallet, oswapContracts, oswapContracts.executor2, "setOracle", "1000000", [Utils.addressToBytes32Right(busd.address, true), Utils.addressToBytes32Right(cake.address, true),Utils.addressToBytes32Right(oracle.address, true)]);
+                    await voteToPass(chainName, wallet, oswapContracts, oswapContracts.executor2, "setOracle", "1000000", [Utils.addressToBytes32Right(busd.address, true), Utils.addressToBytes32Right(cake.address, true), Utils.addressToBytes32Right(oracle.address, true)]);
                 else
-                    await voteToPass(chainName, wallet, oswapContracts, oswapContracts.executor2, "setOracle", "1000000", [Utils.addressToBytes32Right(cake.address, true), Utils.addressToBytes32Right(busd.address, true),Utils.addressToBytes32Right(oracle.address, true)]);
+                    await voteToPass(chainName, wallet, oswapContracts, oswapContracts.executor2, "setOracle", "1000000", [Utils.addressToBytes32Right(cake.address, true), Utils.addressToBytes32Right(busd.address, true), Utils.addressToBytes32Right(oracle.address, true)]);
             }
-            if ((await oswapContracts.oracleFactory.getPair({param1:busd.address, param2:cake.address})) == Utils.nullAddress) {
+            if ((await oswapContracts.oracleFactory.getPair({ param1: busd.address, param2: cake.address })) == Utils.nullAddress) {
                 wallet.defaultAccount = admin;
                 let cakeAmount = CAKE_POOL_SIZE;
                 let busdAmount = cakeAmount * CAKE_PRICE_USD;
                 let oswapAmount = 200;
-                await busd.mint({address: lp2, amount: busdAmount});
-                await cake.mint({address: lp2, amount: cakeAmount});
-                await oswapContracts.openSwap.mint({address: lp2, amount: oswapAmount*2});
+                await busd.mint({ address: lp2, amount: busdAmount });
+                await cake.mint({ address: lp2, amount: cakeAmount });
+                await oswapContracts.openSwap.mint({ address: lp2, amount: oswapAmount * 2 });
 
                 wallet.defaultAccount = lp2;
-                await busd.approve({spender: oswapContracts.oracleLiquidityProvider.address, amount: busdAmount});
-                await cake.approve({spender: oswapContracts.oracleLiquidityProvider.address, amount: cakeAmount});
-                await oswapContracts.openSwap.approve({spender: oswapContracts.oracleLiquidityProvider.address, amount: Utils.toDecimals(oswapAmount*2)});
+                await busd.approve({ spender: oswapContracts.oracleLiquidityProvider.address, amount: busdAmount });
+                await cake.approve({ spender: oswapContracts.oracleLiquidityProvider.address, amount: cakeAmount });
+                await oswapContracts.openSwap.approve({ spender: oswapContracts.oracleLiquidityProvider.address, amount: Utils.toDecimals(oswapAmount * 2) });
                 await oswapContracts.oracleLiquidityProvider.addLiquidity({
                     tokenA: busd.address,
                     tokenB: cake.address,
@@ -327,9 +329,9 @@ describe('proxy', function() {
                     staked: Utils.toDecimals(100),
                     afterIndex: 0,
                     amountIn: Utils.toDecimals(cakeAmount, await cake.decimals),
-                    expire: Math.round(Date.now()/1000) + 100000,
+                    expire: Math.round(Date.now() / 1000) + 100000,
                     enable: true,
-                    deadline: Math.round(Date.now()/1000) + 100000
+                    deadline: Math.round(Date.now() / 1000) + 100000
                 });
                 await oswapContracts.oracleLiquidityProvider.addLiquidity({
                     tokenA: busd.address,
@@ -338,9 +340,9 @@ describe('proxy', function() {
                     staked: Utils.toDecimals(100),
                     afterIndex: 0,
                     amountIn: Utils.toDecimals(busdAmount, await busd.decimals),
-                    expire: Math.round(Date.now()/1000) + 100000,
+                    expire: Math.round(Date.now() / 1000) + 100000,
                     enable: true,
-                    deadline: Math.round(Date.now()/1000) + 100000
+                    deadline: Math.round(Date.now() / 1000) + 100000
                 });
             }
             wallet.defaultAccount = admin
@@ -349,7 +351,7 @@ describe('proxy', function() {
             let hybridRouterRegistry = oswapContracts.hybridRouterRegistry;
             let hybridRouter = oswapContracts.hybridRouter;
             if (hybridRouter) {
-            }else {
+            } else {
                 if (Address[chainName].dependent.hybridRouter) {
                     hybridRouterRegistry = new OSWAP.Contracts.OSWAP_HybridRouterRegistry(wallet, Address[chainName].openswap.hybridRouterRegistry);
                     hybridRouter = new OSWAP.Contracts.OSWAP_HybridRouter2(wallet, Address[chainName].openswap.hybridRouter);
@@ -357,12 +359,12 @@ describe('proxy', function() {
                     hybridRouterRegistry = new OSWAP.Contracts.OSWAP_HybridRouterRegistry(wallet);
                     await hybridRouterRegistry.deploy(oswapContracts.governance.address);
                     hybridRouter = new OSWAP.Contracts.OSWAP_HybridRouter2(wallet);
-                    await hybridRouter.deploy({registry: hybridRouterRegistry.address, WETH: weth.address})
+                    await hybridRouter.deploy({ registry: hybridRouterRegistry.address, WETH: weth.address })
 
                     await voteToPass(chainName, wallet, oswapContracts, oswapContracts.executor, "setVotingExecutor", "1000000", [Utils.addressToBytes32Right(hybridRouterRegistry.address, true), Utils.numberToBytes32(1, true)]);
                     Address[chainName].dependent.hybridRouterRegistry = hybridRouterRegistry.address;
                     Address[chainName].dependent.hybridRouter = hybridRouter.address;
-                    fs.writeFileSync(outputPath, JSON.stringify(Address,null,"    "), "utf8");
+                    fs.writeFileSync(outputPath, JSON.stringify(Address, null, "    "), "utf8");
                     console.log("hybridRouterRegistry " + hybridRouterRegistry.address);
                     console.log("hybridRouter " + hybridRouter.address);
                 }
@@ -371,23 +373,23 @@ describe('proxy', function() {
             if ((await hybridRouterRegistry.protocols(oswapContracts.factory.address)).typeCode.toNumber() == 0) {
                 wallet.defaultAccount = admin;
                 let name = Utils.stringToBytes32("AMM") as string;
-                    await voteToPass(chainName, wallet, oswapContracts, hybridRouterRegistry, "registerProtocol", "1000000", [name, Utils.addressToBytes32Right(oswapContracts.factory.address, true), Utils.numberToBytes32(100000, true),  Utils.numberToBytes32(100000, true), Utils.numberToBytes32(1, true)]);
+                await voteToPass(chainName, wallet, oswapContracts, hybridRouterRegistry, "registerProtocol", "1000000", [name, Utils.addressToBytes32Right(oswapContracts.factory.address, true), Utils.numberToBytes32(100000, true), Utils.numberToBytes32(100000, true), Utils.numberToBytes32(1, true)]);
             }
-            let ammPair = new OSWAP.Contracts.OSWAP_Pair(wallet, await oswapContracts.factory.getPair({param1:busd.address,param2:cake.address}));
+            let ammPair = new OSWAP.Contracts.OSWAP_Pair(wallet, await oswapContracts.factory.getPair({ param1: busd.address, param2: cake.address }));
             if ((await hybridRouterRegistry.pairs(ammPair.address)).factory == Utils.nullAddress)
-                await hybridRouterRegistry.registerPairByAddress({factory:oswapContracts.factory.address, pairAddress:ammPair.address});
-            ammPair = new OSWAP.Contracts.OSWAP_Pair(wallet, await oswapContracts.factory.getPair({param1:busd.address,param2:Address[chainName].weth}));
+                await hybridRouterRegistry.registerPairByAddress({ factory: oswapContracts.factory.address, pairAddress: ammPair.address });
+            ammPair = new OSWAP.Contracts.OSWAP_Pair(wallet, await oswapContracts.factory.getPair({ param1: busd.address, param2: Address[chainName].weth }));
             if ((await hybridRouterRegistry.pairs(ammPair.address)).factory == Utils.nullAddress)
-                await hybridRouterRegistry.registerPairByAddress({factory:oswapContracts.factory.address, pairAddress:ammPair.address});
+                await hybridRouterRegistry.registerPairByAddress({ factory: oswapContracts.factory.address, pairAddress: ammPair.address });
 
             if ((await hybridRouterRegistry.protocols(oswapContracts.oracleFactory.address)).typeCode.toNumber() == 0) {
                 wallet.defaultAccount = admin;
                 let name = Utils.stringToBytes32("ORACLE") as string;
-                await voteToPass(chainName, wallet, oswapContracts, hybridRouterRegistry, "registerProtocol", "1000000", [name, Utils.addressToBytes32Right(oswapContracts.oracleFactory.address, true), Utils.numberToBytes32(100000, true),  Utils.numberToBytes32(100000, true), Utils.numberToBytes32(2, true)]);
+                await voteToPass(chainName, wallet, oswapContracts, hybridRouterRegistry, "registerProtocol", "1000000", [name, Utils.addressToBytes32Right(oswapContracts.oracleFactory.address, true), Utils.numberToBytes32(100000, true), Utils.numberToBytes32(100000, true), Utils.numberToBytes32(2, true)]);
             }
-            let oraclePair = new OSWAP.Contracts.OSWAP_OraclePair(wallet, await oswapContracts.oracleFactory.getPair({param1:busd.address,param2:cake.address}));
+            let oraclePair = new OSWAP.Contracts.OSWAP_OraclePair(wallet, await oswapContracts.oracleFactory.getPair({ param1: busd.address, param2: cake.address }));
             if ((await hybridRouterRegistry.pairs(oraclePair.address)).factory == Utils.nullAddress)
-                await hybridRouterRegistry.registerPairByAddress({factory:oswapContracts.oracleFactory.address, pairAddress:oraclePair.address});
+                await hybridRouterRegistry.registerPairByAddress({ factory: oswapContracts.oracleFactory.address, pairAddress: oraclePair.address });
             if (!(await oswapContracts.oracleFactory.isWhitelisted(hybridRouter.address)))
                 await voteToPass(chainName, wallet, oswapContracts, oswapContracts.executor2, "setWhiteList", "1000000", [Utils.addressToBytes32Right(hybridRouter.address, true), Utils.numberToBytes32(1, true)]);
         }
@@ -406,7 +408,7 @@ describe('proxy', function() {
     });
 
     let proxy: Contracts.Proxy;
-    it('deploy', async function(){
+    it('deploy', async function () {
         let result = await deploy(wallet, {
             version: 'V1'
         });
@@ -414,31 +416,24 @@ describe('proxy', function() {
         proxy = new Contracts.Proxy(wallet, result.proxy);
     });
 
-    it('token to token', async function(){
+    it('token to token', async function () {
 
         let amountIn = 1000
         let decimals = await busd.decimals;
         let amountInWei = Utils.toDecimals(amountIn, decimals);
 
         wallet.defaultAccount = admin;
-        await busd.mint({address:trader, amount:amountIn * 2});
+        await busd.mint({ address: trader, amount: amountIn * 2 });
 
         wallet.defaultAccount = trader;
         let now = parseInt((await wallet.getBlock()).timestamp.toString());
 
-        // await busd.approve({spender:oswapContracts.router.address, amount:amountIn});
-        // await oswapContracts.router.swapExactTokensForTokens({
-        //     amountIn: amountInWei,
-        //     amountOutMin: 0,
-        //     path:[busd.address,cake.address],
-        //     to: trader,
-        //     deadline: now + 1000
-        // });
-        // print(await cake.balanceOf(trader));
+        let to = trader;
+        let tokensOut = [cake.address];
         let data = await oswapContracts.router.swapExactTokensForTokens.txData({
             amountIn: amountInWei,
             amountOutMin: 0,
-            path:[busd.address,cake.address],
+            path: [busd.address, cake.address],
             to: proxy.address, // trader
             deadline: now + 1000
         });
@@ -451,16 +446,14 @@ describe('proxy', function() {
                 amount: Utils.toDecimals(amountIn + 10 + 15, decimals),
                 directTransfer: false,
                 commissions: [
-                    {to: referrer1, amount: Utils.toDecimals(10, decimals)},
-                    {to: referrer2, amount: Utils.toDecimals(15, decimals)}
+                    { to: referrer1, amount: Utils.toDecimals(10, decimals) },
+                    { to: referrer2, amount: Utils.toDecimals(15, decimals) }
                 ]
             }
         ];
-        let to = trader;
-        let tokensOut = [cake.address];
 
-        await busd.approve({spender:proxy.address, amount:amountIn * 2});
-        let receipt = await proxy.proxyCall({target,tokensIn,to,tokensOut,data}, 0);
+        await busd.approve({ spender: proxy.address, amount: amountIn * 2 });
+        let receipt = await proxy.proxyCall({ target, tokensIn, to, tokensOut, data }, 0);
         print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
         print(proxy.parseTransferBackEvent(receipt));
@@ -481,9 +474,9 @@ describe('proxy', function() {
             token: busd.address
         });
         assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
-        
+
         await proxy.claim(busd.address);
-        balance = await busd.balanceOf(referrer1); 
+        balance = await busd.balanceOf(referrer1);
         assert.strictEqual(balance.toFixed(), "10");
 
         balance = await proxy.lastBalance(busd.address);
@@ -493,7 +486,7 @@ describe('proxy', function() {
 
     });
 
-    it('ETH to token', async function(){
+    it('ETH to token', async function () {
 
         let amountIn = 10
         let decimals = 18;
@@ -502,20 +495,13 @@ describe('proxy', function() {
         wallet.defaultAccount = trader;
         let now = parseInt((await wallet.getBlock()).timestamp.toString());
 
-        // await oswapContracts.router.swapExactETHForTokens({
-        //     // amountIn: amountInWei,
-        //     amountOutMin: 0,
-        //     path:[busd.address,weth.address],
-        //     to: trader,
-        //     deadline: now + 1000
-        // }, amountInWei);
-        // print(await cake.balanceOf(trader));
-
+        let to = trader;
+        let tokensOut = [busd.address];
         let data = await oswapContracts.router.swapExactETHForTokens.txData({
             // amountIn: amountInWei,
             amountOutMin: 0,
-            path:[weth.address,busd.address],
-            to: proxy.address, // trader
+            path: [weth.address, busd.address],
+            to: to, // trader
             deadline: now + 1000
         }, amountInWei);
         print(data);
@@ -527,15 +513,13 @@ describe('proxy', function() {
                 amount: Utils.toDecimals(amountIn + 0.10 + 0.15, decimals),
                 directTransfer: false,
                 commissions: [
-                    {to: referrer1, amount: Utils.toDecimals(0.10, decimals)},
-                    {to: referrer2, amount: Utils.toDecimals(0.15, decimals)}
+                    { to: referrer1, amount: Utils.toDecimals(0.10, decimals) },
+                    { to: referrer2, amount: Utils.toDecimals(0.15, decimals) }
                 ]
             }
         ];
-        let to = trader;
-        let tokensOut = [busd.address];
 
-        let receipt = await proxy.proxyCall({target,tokensIn,to,tokensOut,data}, Utils.toDecimals(amountIn + 0.10 + 0.15, decimals));
+        let receipt = await proxy.proxyCall({ target, tokensIn, to, tokensOut, data }, Utils.toDecimals(amountIn + 0.10 + 0.15, decimals));
         print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
         print(proxy.parseTransferBackEvent(receipt));
@@ -557,7 +541,7 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), Utils.toDecimals(0.1).toFixed());
 
         await proxy.claim(Utils.nullAddress);
-        balance = await wallet.balanceOf(referrer1); 
+        balance = await wallet.balanceOf(referrer1);
         assert.strictEqual(balance.toFixed(), "10000.09977185"); // 10000 + 0.1 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
@@ -566,33 +550,25 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.15").toFixed());
     });
 
-    it('token to ETH', async function(){
+    it('token to ETH', async function () {
 
         let amountIn = 1000
         let decimals = await busd.decimals;
         let amountInWei = Utils.toDecimals(amountIn, decimals);
 
         wallet.defaultAccount = admin;
-        await busd.mint({address:trader, amount:amountIn * 2});
+        await busd.mint({ address: trader, amount: amountIn * 2 });
 
         wallet.defaultAccount = trader;
         let now = parseInt((await wallet.getBlock()).timestamp.toString());
 
-        // await busd.approve({spender:oswapContracts.router.address, amount:amountIn});
-        // await oswapContracts.router.swapExactTokensForETH({
-        //     amountIn: amountInWei,
-        //     amountOutMin: 0,
-        //     path:[busd.address,weth.address],
-        //     to: trader,
-        //     deadline: now + 1000
-        // }, amountInWei);
-        // print(await cake.balanceOf(trader));
-
+        let to = trader;
+        let tokensOut = [Utils.nullAddress];
         let data = await oswapContracts.router.swapExactTokensForETH.txData({
             amountIn: amountInWei,
             amountOutMin: 0,
-            path:[busd.address,weth.address],
-            to: proxy.address, // trader
+            path: [busd.address, weth.address],
+            to: to, // trader
             deadline: now + 1000
         });
         print(data);
@@ -604,16 +580,15 @@ describe('proxy', function() {
                 amount: Utils.toDecimals(amountIn + 10 + 15, decimals),
                 directTransfer: false,
                 commissions: [
-                    {to: referrer1, amount: Utils.toDecimals(10, decimals)},
-                    {to: referrer2, amount: Utils.toDecimals(15, decimals)}
+                    { to: referrer1, amount: Utils.toDecimals(10, decimals) },
+                    { to: referrer2, amount: Utils.toDecimals(15, decimals) }
                 ]
             }
         ];
-        let to = trader;
-        let tokensOut = [Utils.nullAddress];
 
-        await busd.approve({spender:proxy.address, amount:amountIn * 2});
-        let receipt = await proxy.proxyCall({target,tokensIn,to,tokensOut,data}, 0);
+
+        await busd.approve({ spender: proxy.address, amount: amountIn * 2 });
+        let receipt = await proxy.proxyCall({ target, tokensIn, to, tokensOut, data }, 0);
         print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
         print(proxy.parseTransferBackEvent(receipt));
@@ -635,7 +610,7 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
 
         await proxy.claim(busd.address);
-        balance = await busd.balanceOf(referrer1); 
+        balance = await busd.balanceOf(referrer1);
         assert.strictEqual(balance.toFixed(), "20");
 
         balance = await proxy.lastBalance(busd.address);
@@ -645,14 +620,14 @@ describe('proxy', function() {
     });
 
 
-    it('token to token - tokenIn', async function(){
+    it('token to token - tokenIn', async function () {
 
         let amountIn = 1000
         let decimals = await busd.decimals;
         let amountInWei = Utils.toDecimals(amountIn, decimals);
 
         wallet.defaultAccount = admin;
-        await busd.mint({address:trader, amount:amountIn * 2});
+        await busd.mint({ address: trader, amount: amountIn * 2 });
 
         wallet.defaultAccount = trader;
         let now = parseInt((await wallet.getBlock()).timestamp.toString());
@@ -666,34 +641,36 @@ describe('proxy', function() {
         //     deadline: now + 1000
         // });
         // print(await cake.balanceOf(trader));
-
+        let to = trader;
+        let tokensOut = [cake.address];
         let data = await oswapContracts.router.swapExactTokensForTokens.txData({
             amountIn: amountInWei,
             amountOutMin: 0,
-            path:[busd.address,cake.address],
-            to: proxy.address, // trader
+            path: [busd.address, cake.address],
+            to: to, // trader
             deadline: now + 1000
         });
         print(data);
 
         let target = oswapContracts.router.address;
-        let tokensIn = 
-            {
-                token: busd.address,
-                amount: Utils.toDecimals(amountIn + 10 + 15, decimals),
-                directTransfer: false,
-                commissions: [
-                    {to: referrer1, amount: Utils.toDecimals(10, decimals)},
-                    {to: referrer2, amount: Utils.toDecimals(15, decimals)}
-                ],
-                totalCommissions: Utils.toDecimals(25, decimals)
-            }
-        ;
-        let to = trader;
-        let tokensOut = [cake.address];
+        let tokensIn =
+        {
+            token: busd.address,
+            amount: Utils.toDecimals(amountIn + 10 + 15, decimals),
+            directTransfer: false,
+            commissions: [
+                { to: referrer1, amount: Utils.toDecimals(10, decimals) },
+                { to: referrer2, amount: Utils.toDecimals(15, decimals) }
+            ],
+            totalCommissions: Utils.toDecimals(25, decimals)
+        }
+            ;
 
-        await busd.approve({spender:proxy.address, amount:amountIn * 2});
-        let receipt = await proxy.tokenIn({target,tokensIn,data});
+        let cakeBalance = await cake.balanceOf(trader);
+        assert.strictEqual(cakeBalance.toFixed(), "83.326389467544371302");
+
+        await busd.approve({ spender: proxy.address, amount: amountIn * 2 });
+        let receipt = await proxy.tokenIn({ target, tokensIn, data });
         print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
         print(proxy.parseTransferBackEvent(receipt));
@@ -704,8 +681,8 @@ describe('proxy', function() {
         balance = await proxy.lastBalance(Utils.nullAddress);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.15").toFixed());
 
-        balance = await cake.balanceOf(trader);
-        assert.strictEqual(balance.toFixed(), "83.326389467544371302");
+        cakeBalance = await cake.balanceOf(trader);
+        assert.strictEqual(cakeBalance.toFixed(), "166.638893517747042159");
 
         wallet.defaultAccount = referrer1;
         balance = await proxy.getClaimantBalance({
@@ -715,7 +692,7 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
 
         await proxy.claim(busd.address);
-        balance = await busd.balanceOf(referrer1); 
+        balance = await busd.balanceOf(referrer1);
         assert.strictEqual(balance.toFixed(), "30");
 
         balance = await proxy.lastBalance(busd.address);
@@ -723,8 +700,7 @@ describe('proxy', function() {
         balance = await proxy.lastBalance(Utils.nullAddress);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.15").toFixed());
     });
-
-    it('ETH to token - ethIn', async function(){
+    it('ETH to token - ethIn', async function () {
 
         let amountIn = 10
         let decimals = 18;
@@ -733,35 +709,29 @@ describe('proxy', function() {
         wallet.defaultAccount = trader;
         let now = parseInt((await wallet.getBlock()).timestamp.toString());
 
-        // await oswapContracts.router.swapExactETHForTokens({
-        //     // amountIn: amountInWei,
-        //     amountOutMin: 0,
-        //     path:[busd.address,weth.address],
-        //     to: trader,
-        //     deadline: now + 1000
-        // }, amountInWei);
-        // print(await cake.balanceOf(trader));
-
+        let to = trader;
+        let tokensOut = [busd.address];
         let data = await oswapContracts.router.swapExactETHForTokens.txData({
             // amountIn: amountInWei,
             amountOutMin: 0,
-            path:[weth.address,busd.address],
-            to: proxy.address, // trader
+            path: [weth.address, busd.address],
+            to: to, // trader
             deadline: now + 1000
         }, amountInWei);
         print(data);
 
         let target = oswapContracts.router.address;
-        let 
-                commissions = [
-                    {to: referrer1, amount: Utils.toDecimals(0.10, decimals)},
-                    {to: referrer2, amount: Utils.toDecimals(0.15, decimals)}
-                ]
-        ;
-        let to = trader;
-        let tokensOut = [busd.address];
+        let
+            commissions = [
+                { to: referrer1, amount: Utils.toDecimals(0.10, decimals) },
+                { to: referrer2, amount: Utils.toDecimals(0.15, decimals) }
+            ]
+            ;
 
-        let receipt = await proxy.ethIn({target,commissions,data}, Utils.toDecimals(amountIn + 0.10 + 0.15, decimals));
+        let busdBalance = await busd.balanceOf(trader);
+        assert.strictEqual(busdBalance.toFixed(), "6885.396039603960396039");
+
+        let receipt = await proxy.ethIn({ target, commissions, data }, Utils.toDecimals(amountIn + 0.10 + 0.15, decimals));
         print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
         print(proxy.parseTransferBackEvent(receipt));
@@ -772,8 +742,8 @@ describe('proxy', function() {
         balance = await proxy.lastBalance(Utils.nullAddress);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.40").toFixed());
 
-        balance = await busd.balanceOf(trader);
-        assert.strictEqual(balance.toFixed(), "6885.396039603960396039");
+        busdBalance = await busd.balanceOf(trader);
+        assert.strictEqual(busdBalance.toFixed(), "10787.673252451348630827");
 
         wallet.defaultAccount = referrer1;
         balance = await proxy.getClaimantBalance({
@@ -783,18 +753,72 @@ describe('proxy', function() {
         assert.strictEqual(balance.toFixed(), "100000000000000000");
 
         await proxy.claim(Utils.nullAddress);
-        balance = await wallet.balanceOf(referrer1); 
+        balance = await wallet.balanceOf(referrer1);
         assert.strictEqual(balance.toFixed(), "10000.199468966"); // 10000 + 0.1 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals(45).toFixed());
         balance = await proxy.lastBalance(Utils.nullAddress);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.30").toFixed());
-
+    });
+    it('getClaimantsInfo', async function () {
         const claimantIdCount = await proxy.claimantIdCount();
-        const list = await proxy.getClaimantsInfo({
+        let list = await proxy.getClaimantsInfo({
             fromId: 1,
             count: claimantIdCount
         });
+        assert.strictEqual(list.length, claimantIdCount.toNumber());
+        list = await proxy.getClaimantsInfo({
+            fromId: 1,
+            count: 10
+        });
+        assert.strictEqual(list.length, 4);
+        list = await proxy.getClaimantsInfo({
+            fromId: 2,
+            count: 5
+        });
+        assert.strictEqual(list.length, 3);
+        list = await proxy.getClaimantsInfo({
+            fromId: 1,
+            count: 2
+        });
+        assert.strictEqual(list.length, 2);
+        list = await proxy.getClaimantsInfo({
+            fromId: 2,
+            count: 2
+        });
+        assert.strictEqual(list.length, 2);
+        try {
+            list = await proxy.getClaimantsInfo({
+                fromId: 5,
+                count: 2
+            });
+            throw null;
+        }
+        catch (error) {
+            assert.strictEqual(error.message, 'VM Exception while processing transaction: revert out of bounds');
+        }
     });
+    it('Skim', async function () {
+        wallet.defaultAccount = trader;
+        await busd.approve({
+            spender: proxy.address,
+            amount: 10
+        })
+        await busd.transfer({
+            address: proxy.address,
+            amount: 10
+        })
+        await wallet.send(proxy.address, 10);
+        let busdBalanceBefore = await busd.balanceOf(trader);
+        let ethBalanceBefore = await wallet.balanceOf(trader);
+        let cakeBalanceBefore = await cake.balanceOf(trader);
+        await proxy.skim([busd.address, Utils.nullAddress, cake.address])
+        let busdBalanceAfter = await busd.balanceOf(trader);
+        assert.strictEqual(busdBalanceAfter.toFixed(), busdBalanceBefore.plus(10).toFixed());
+        let ethBalanceAfter = await wallet.balanceOf(trader);
+        assert.strictEqual(ethBalanceAfter.toFixed(2), ethBalanceBefore.plus(10).toFixed(2));
+        let cakeBalanceAfter = await cake.balanceOf(trader);
+        assert.strictEqual(cakeBalanceAfter.toFixed(), cakeBalanceBefore.toFixed());
+    })
 });

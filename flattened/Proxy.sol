@@ -565,13 +565,20 @@ contract Proxy {
 
     receive() external payable {}
 
+    function _transferAssetFrom(IERC20 token, uint256 amount) internal returns (uint256 balance) {
+        balance = token.balanceOf(address(this));
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        balance = token.balanceOf(address(this)) - balance;
+    }
+
     function safeTransferETH(address to, uint value) internal {
         (bool success,) = to.call{value:value}(new bytes(0));
         require(success, 'TransferHelper: ETH_TRANSFER_FAILED');
     }
 
     function addToDistributions(address claimant, IERC20 token, uint256 amount) internal {
-        if (claimantIds[claimant][token] == 0) {
+        uint256 claimantId = claimantIds[claimant][token];
+        if (claimantId == 0) {
             ++claimantIdCount;
             claimantsInfo[claimantIdCount] = ClaimantInfo({
                 claimant: claimant,
@@ -581,7 +588,6 @@ contract Proxy {
             claimantIds[claimant][token] = claimantIdCount;
         }
         else {
-            uint256 claimantId = claimantIds[claimant][token];
             claimantsInfo[claimantId].balance += amount;
         }
     }
@@ -592,12 +598,17 @@ contract Proxy {
     }
 
     function getClaimantsInfo(uint256 fromId, uint256 count) external view returns (ClaimantInfo[] memory claimantInfoList) {
-        if (fromId + count - 1 > claimantIdCount) count = claimantIdCount;
+        require(fromId > 0 && fromId <= claimantIdCount, "out of bounds");
+        uint256 toId = fromId + count - 1;
+        if (toId > claimantIdCount) {
+            toId = claimantIdCount;
+            count = toId - fromId + 1;
+        }
         claimantInfoList = new ClaimantInfo[](count);
         uint256 currId = fromId;
         for (uint256 i = 0; i < count; i++) {
             claimantInfoList[i] = claimantsInfo[currId];
-            currId++;
+            ++currId;
         }
     }
     
@@ -618,10 +629,12 @@ contract Proxy {
 
         // transfer / approve tokens to target
         if (transfer.directTransfer) {
-            transfer.token.safeTransferFrom(msg.sender, address(this), totalCommissions);
+            uint256 actualTotalCommission = _transferAssetFrom(transfer.token, totalCommissions);
+            require(actualTotalCommission == totalCommissions, "commission amount not matched");
             transfer.token.safeTransferFrom(msg.sender, target, amount);
         } else {
-            transfer.token.safeTransferFrom(msg.sender, address(this), transfer.amount);
+            uint256 actualAmount = _transferAssetFrom(transfer.token, transfer.amount);
+            require(actualAmount == transfer.amount, "amount not matched");
             // optional, may make a list of tokens need to reset first
             transfer.token.safeApprove(target, 0);
             transfer.token.safeApprove(target, amount);
@@ -692,11 +705,13 @@ contract Proxy {
                 ethAmount = amount;
             } else {
                 // transfer / approve tokens to target
-                if (transfer.directTransfer) {               
-                    transfer.token.safeTransferFrom(msg.sender, address(this), totalCommissions);
+                if (transfer.directTransfer) {     
+                    uint256 actualTotalCommission = _transferAssetFrom(transfer.token, totalCommissions);
+                    require(actualTotalCommission == totalCommissions, "commission amount not matched");          
                     transfer.token.safeTransferFrom(msg.sender, target, amount);
                 } else {
-                    transfer.token.safeTransferFrom(msg.sender, address(this), transfer.amount);
+                    uint256 actualAmount = _transferAssetFrom(transfer.token, transfer.amount);
+                    require(actualAmount == transfer.amount, "amount not matched");
                     // optional, may make a list of tokens need to reset first
                     transfer.token.safeApprove(target, 0);
                     transfer.token.safeApprove(target, amount);
