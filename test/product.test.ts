@@ -9,7 +9,7 @@ import networks from "../data/networks";
 import {Utils, Wallet, Contract, BigNumber, TransactionReceipt, Erc20} from "@ijstech/eth-wallet";
 import {WETH9 as WETH, MockErc20} from "./src/contracts";
 
-import * as Product from "@scom/product-contract";
+import * as Product from "@scom/scom-product-contract";
 
 import Ganache from "ganache";
 import * as assert from 'assert';

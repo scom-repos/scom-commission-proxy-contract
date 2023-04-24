@@ -17,7 +17,7 @@
         "@scom/oswap-openswap-contract": "^0.1.2",
         "@scom/contract-deployer": "^0.1.5",
         "@scom/dapp": "^0.1.6",
-        "@scom/product-contract": "0.1.1",
+        "@scom/scom-product-contract": "^0.1.1",
         "@types/mocha": "9.1.1",
         "@types/node": "18.8.4",
         "ganache": "7.5.0",

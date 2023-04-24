@@ -9,7 +9,7 @@
         "outDir": "lib",
         "baseUrl": ".",
         "paths": {
-          "@scom/product-contract": ["./node_modules/@scom/product-master-contract"]
+          "@scom/scom-product-contract": ["./node_modules/@scom/product-master-contract"]
         }
     },
     "include": [
