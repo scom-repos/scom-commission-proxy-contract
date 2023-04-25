@@ -117,9 +117,18 @@ define("@ijstech/eth-contract", ["require", "exports", "bignumber.js"], function
         //         this.wallet.registerEvent(this.getAbiEvents(), this._address, handler);
         // }
         scanEvents(fromBlock, toBlock, eventNames) {
-            let topics = this.getAbiTopics(eventNames);
-            let events = this.getAbiEvents();
-            return this.wallet.scanEvents(fromBlock, toBlock, topics, events, this._address);
+            if (typeof (fromBlock) == 'number') {
+                let topics = this.getAbiTopics(eventNames);
+                let events = this.getAbiEvents();
+                return this.wallet.scanEvents(fromBlock, toBlock, topics, events, this._address);
+            }
+            else {
+                let params = fromBlock;
+                let topics = this.getAbiTopics(params.eventNames);
+                let events = this.getAbiEvents();
+                return this.wallet.scanEvents(params.fromBlock, params.toBlock, topics, events, this._address);
+            }
+            ;
         }
         ;
         async batchCall(batchObj, key, methodName, params, options) {
@@ -163,29 +172,29 @@ define("@ijstech/eth-contract", ["require", "exports", "bignumber.js"], function
         _deploy(...params) {
             return this.__deploy(params);
         }
-        methods(methodName, ...params) {
+        async methods(methodName, ...params) {
             let method = this._abi.find(e => e.name == methodName);
             if (method.stateMutability == "view" || method.stateMutability == "pure") {
-                return this.call(methodName, params);
+                return await this.call(methodName, params);
             }
             else if (method.stateMutability == 'payable') {
                 let value = params.pop();
-                return this.call(methodName, params, { value: value });
+                return await this.call(methodName, params, { value: value });
             }
             else {
-                return this.send(methodName, params);
+                return await this.send(methodName, params);
             }
         }
     }
     exports.Contract = Contract;
     ;
     class TAuthContract extends Contract {
-        rely(address) {
-            return this.methods('rely', address);
+        async rely(address) {
+            return await this.methods('rely', address);
         }
         ;
-        deny(address) {
-            return this.methods('deny', address);
+        async deny(address) {
+            return await this.methods('deny', address);
         }
         ;
     }

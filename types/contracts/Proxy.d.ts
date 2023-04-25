@@ -50,7 +50,7 @@ export interface ITokenInParams {
 export declare class Proxy extends _Contract {
     static _abi: any;
     constructor(wallet: IWallet, address?: string);
-    deploy(options?: number | BigNumber | TransactionOptions): Promise<string>;
+    deploy(options?: TransactionOptions): Promise<string>;
     parseAddCommissionEvent(receipt: TransactionReceipt): Proxy.AddCommissionEvent[];
     decodeAddCommissionEvent(event: Event): Proxy.AddCommissionEvent;
     parseClaimEvent(receipt: TransactionReceipt): Proxy.ClaimEvent[];

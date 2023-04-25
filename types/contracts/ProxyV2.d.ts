@@ -52,7 +52,7 @@ export interface ITokenInParams {
 export declare class ProxyV2 extends _Contract {
     static _abi: any;
     constructor(wallet: IWallet, address?: string);
-    deploy(options?: number | BigNumber | TransactionOptions): Promise<string>;
+    deploy(options?: TransactionOptions): Promise<string>;
     parseAddCommissionEvent(receipt: TransactionReceipt): ProxyV2.AddCommissionEvent[];
     decodeAddCommissionEvent(event: Event): ProxyV2.AddCommissionEvent;
     parseClaimEvent(receipt: TransactionReceipt): ProxyV2.ClaimEvent[];
