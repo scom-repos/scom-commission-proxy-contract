@@ -599,10 +599,9 @@ contract Proxy {
 
     function getClaimantsInfo(uint256 fromId, uint256 count) external view returns (ClaimantInfo[] memory claimantInfoList) {
         require(fromId > 0 && fromId <= claimantIdCount, "out of bounds");
-        uint256 toId = fromId + count - 1;
-        if (toId > claimantIdCount) {
-            toId = claimantIdCount;
-            count = toId - fromId + 1;
+        uint256 maxCount = claimantIdCount - fromId + 1;
+        if (count > maxCount) {
+            count = maxCount;
         }
         claimantInfoList = new ClaimantInfo[](count);
         uint256 currId = fromId;
