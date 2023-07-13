@@ -1,5 +1,5 @@
 import 'mocha';
-import {print} from './helper';
+import {getProvider, print} from './helper';
 
 // import Config from './config';
 const Config = {networks:[{chainName: 'localGanache'}]};
@@ -7,14 +7,12 @@ const Config = {networks:[{chainName: 'localGanache'}]};
 import networks from "../data/networks";
 
 import {Utils, Wallet, Contract, BigNumber, TransactionReceipt, Erc20} from "@ijstech/eth-wallet";
-import {WETH9 as WETH, MockErc20} from "./src/contracts";
+import {WETH9 as WETH, MockErc20} from "../packages/mock-contracts/src/contracts";
 
 import * as Product from "@scom/scom-product-contract";
 
 import Ganache from "ganache";
 import * as assert from 'assert';
-
-import Web3 from 'web3';
 
 import fs from "fs";
 import path from "path";
@@ -120,11 +118,8 @@ describe('proxy', function() {
         // console.log(accounts);
 
         if (!Address[chainName]) Address[chainName] = {};
-        let provider =  // chainName=="localHardhat" ? hardhat.web3.currentProvider :
-                        networks[chainName].rpc ? new Web3.providers.HttpProvider(networks[chainName].rpc, networks[chainName].rpcOptions) :
-                        Ganache.provider({logging:{quiet:true},wallet:{totalAccounts:20,mnemonic:"test test test test test test test test test test test junk",defaultBalance:10000}});
 
-        wallet = new Wallet(provider/*, Config.networks[0].accounts*/);
+        wallet = new Wallet(getProvider());
 
         accounts = await wallet.accounts;
         admin = accounts[0];
@@ -176,12 +171,12 @@ describe('proxy', function() {
         product1155 = new Product.Contracts.Product1155(wallet, result.product1155);
 
         //token
-        let receipt = await productInfo.newProduct({uri:"", quantity:100, maxPrice: 0, maxQuantity: 5000, price: Utils.toDecimals(25), token:busd.address});
+        let receipt = await productInfo.newProduct({productType:0, uri:"", quantity:100, maxPrice: 0, maxQuantity: 5000, price: Utils.toDecimals(25), token:busd.address});
         let event = productInfo.parseNewProductEvent(receipt)[0];// {productId:BigNumber,owner:string,_event:Event}
         productId = event.productId;
 
         // ETH
-        receipt = await productInfo.newProduct({uri:"", quantity:100, maxPrice: 0, maxQuantity: 5000, price: Utils.toDecimals(0.25), token:Utils.nullAddress});
+        receipt = await productInfo.newProduct({productType:0, uri:"", quantity:100, maxPrice: 0, maxQuantity: 5000, price: Utils.toDecimals(0.25), token:Utils.nullAddress});
         event = productInfo.parseNewProductEvent(receipt)[0];// {productId:BigNumber,owner:string,_event:Event}
         productId2 = event.productId;
     });
