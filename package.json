@@ -27,6 +27,7 @@
     },
     "scripts": {
         "build": "rm -rf lib && rm -rf dist && rm -rf types && rm -rf pluginTypes && rm -rf src/contracts && npx @ijstech/compiler",
+        "build:mocks": "cd packages/mock-contracts && npm run build",
         "deployer": "npx @ijstech/cli serve 8080 deployer",
         "test": "mocha --exit --require ts-node/register --require tsconfig-paths/register --timeout 1000000 ./test/*.test.ts",
         "test:product": "mocha --exit --require ts-node/register --require tsconfig-paths/register --timeout 1000000 ./test/product.test.ts"
