@@ -7,10 +7,7 @@
         "declaration": true,
         "declarationDir": "types",
         "outDir": "lib",
-        "baseUrl": ".",
-        "paths": {
-          "@scom/scom-product-contract": ["./node_modules/@scom/product-master-contract"]
-        }
+        "baseUrl": "."
     },
     "include": [
       "src/**/*"
