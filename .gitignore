@@ -1,4 +1,8 @@
+.vscode
+hardhat/artifacts
+hardhat/cache
+hardhat/openswap
+deployer
 node_modules
 package-lock.json
 repos
-deployer
