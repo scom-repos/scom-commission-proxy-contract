@@ -13,8 +13,9 @@ contract ProxyV3 is Authorization {
 
     struct Project {
         address owner;
-        address[] prjectAdmin;
-        mapping(address => uint256) prjectAdminInv;
+        address newOwner;
+        address[] projectAdmins;
+        mapping(address => uint256) projectAdminInv;
     }
 
     struct CommissionInTokenConfig {
@@ -66,7 +67,7 @@ contract ProxyV3 is Authorization {
     mapping(uint256 => mapping(IERC20 => uint256)) public projectBalance; // projectBalance[projectId][token] = balance
     mapping(uint256 => uint256[]) projectCampaignId; // projectCampaignId[projectId][idx] = campaignId
     mapping(uint256 => mapping(IERC20 => uint256)) public campaignAccumulatedCommission; // campaignAccumulatedCommission[campaignId][token] = commission
-    mapping(uint256 => mapping(IERC20 => uint256)) public stakesBalance;
+    mapping(uint256 => mapping(IERC20 => uint256)) public stakesBalance; // stakesBalance[projectId][token]
     mapping(IERC20 => uint256) public lastBalance;
 
     uint24 public protocolRate;
@@ -78,6 +79,10 @@ contract ProxyV3 is Authorization {
 
     event SetProtocolRate(uint24 protocolRate);
     event NewProject(uint256 indexed projectId);
+    event TransferProjectOwnership(uint256 indexed projectId, address newOwner);
+    event TakeoverProjectOwnership(uint256 indexed projectId, address newOwner);
+    event AddProjectAdmin(uint256 indexed projectId, address indexed admin);
+    event RemoveProjectAdmin(uint256 indexed projectId, address indexed admin);
     event NewCampaign(uint256 indexed campaignId);
     event Stake(uint256 indexed projectId, IERC20 indexed token, uint256 amount, uint256 balance);
     event TransferForward(address indexed target, IERC20 indexed token, address sender, uint256 amount);
@@ -112,17 +117,76 @@ contract ProxyV3 is Authorization {
         projects.push();
         Project storage project = projects[projectId];
         project.owner = msg.sender;
-        project.prjectAdmin.push(msg.sender);
-        project.prjectAdminInv[msg.sender] = 0;
+        project.projectAdmins.push(msg.sender);
+        project.projectAdminInv[msg.sender] = 0;
         uint256 i;
         uint256 length = admins.length;
         while (i < length) {
             address admin = admins[i];
-            project.prjectAdmin.push(admin);
+            project.projectAdmins.push(admin);
             unchecked { i++; }
-            project.prjectAdminInv[admin] = i; // owner is the first one
+            project.projectAdminInv[admin] = i; // owner is the first one
         }
         emit NewProject(projectId);
+    }
+    function getProject(uint256 projectId) external view returns (
+        address owner,
+        address newOwner,
+        address[] memory projectAdmins
+    ) {
+        Project storage project = projects[projectId];
+        owner = project.owner;
+        newOwner = project.newOwner;
+        projectAdmins = new address[](project.projectAdmins.length);
+        projectAdmins = project.projectAdmins;
+    }
+    function getProjectAdminsLength(uint256 projectId) external view returns (uint256 length) {
+        length = projects[projectId].projectAdmins.length;
+    }
+    function transferProjectOwnership(uint256 projectId, address newOwner) external {
+        Project storage project = projects[projectId];
+        require(msg.sender == project.owner, "not from owner");
+        project.newOwner = newOwner;
+        emit TransferProjectOwnership(projectId, newOwner);
+    }
+    function takeoverProjectOwnership(uint256 projectId) external {
+        Project storage project = projects[projectId];
+        require(msg.sender == project.newOwner, "not from owner");
+        _removeProjectAdmin(projectId, project, project.owner);
+        project.owner = msg.sender;
+        project.newOwner = address(0);
+        _addProjectAdmin(projectId, project, newOwner);
+        emit TakeoverProjectOwnership(projectId, msg.sender);
+    }
+    function addProjectAdmin(uint256 projectId, address admin) external {
+        Project storage project = projects[projectId];
+        require(msg.sender == project.newOwner, "not from owner");
+        _addProjectAdmin(projectId, project, admin);
+    }
+    function _addProjectAdmin(uint256 projectId, Project storage project, address admin) internal {
+        if (project.projectAdmins[project.projectAdminInv[admin]] != admin) {
+            project.projectAdminInv[admin] = project.projectAdmins.length;
+            project.projectAdmins.push(admin);
+            emit AddProjectAdmin(projectId, admin);
+        }
+    }
+    function removeProjectAdmin(uint256 projectId, address admin) external {
+        Project storage project = projects[projectId];
+        require(msg.sender == project.newOwner, "not from owner");
+        _removeProjectAdmin(projectId, project, admin);
+    }
+    function _removeProjectAdmin(uint256 projectId, Project storage project, address admin) internal {
+        uint256 index = project.projectAdminInv[admin];
+        require(project.projectAdmins[index] == admin, "not an admin");
+        uint256 lastIndex = project.projectAdmins.length - 1;
+        if (index != lastIndex){
+            address last = project.projectAdmins[lastIndex];
+            project.projectAdmins[index] = last;
+            project.projectAdminInv[last] = index;
+        }
+        project.projectAdmins.pop();
+        delete project.projectAdminInv[admin];
+        emit RemoveProjectAdmin(projectId, admin);
     }
     struct CampaignParams {
         uint256 projectId;
@@ -141,7 +205,7 @@ contract ProxyV3 is Authorization {
     function newCampaign(CampaignParams calldata params) external returns (uint256 campaignId) {
         require(params.projectId < projects.length, "Invalid projectId");
         Project storage project = projects[params.projectId];
-        require(project.prjectAdmin[project.prjectAdminInv[msg.sender]] == msg.sender, "not a project admin");
+        require(project.projectAdmins[project.projectAdminInv[msg.sender]] == msg.sender, "not a project admin");
         require(params.startDate <= params.endDate, "invalid campaign date");
         campaignId = campaigns.length;
 

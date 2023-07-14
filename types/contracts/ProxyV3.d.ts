@@ -1,4 +1,8 @@
 import { IWallet, Contract as _Contract, TransactionReceipt, BigNumber, Event, TransactionOptions } from "@ijstech/eth-contract";
+export interface IAddProjectAdminParams {
+    projectId: number | BigNumber;
+    admin: string;
+}
 export interface ICampaignAccumulatedCommissionParams {
     param1: number | BigNumber;
     param2: string;
@@ -49,6 +53,10 @@ export interface IProxyCallParams {
     tokensOut: string[];
     data: string;
 }
+export interface IRemoveProjectAdminParams {
+    projectId: number | BigNumber;
+    admin: string;
+}
 export interface IStakeParams {
     projectId: number | BigNumber;
     token: string;
@@ -63,12 +71,18 @@ export interface IStakesBalanceParams {
     param1: number | BigNumber;
     param2: string;
 }
+export interface ITransferProjectOwnershipParams {
+    projectId: number | BigNumber;
+    newOwner: string;
+}
 export declare class ProxyV3 extends _Contract {
     static _abi: any;
     constructor(wallet: IWallet, address?: string);
     deploy(protocolRate: number | BigNumber, options?: TransactionOptions): Promise<string>;
     parseAddCommissionEvent(receipt: TransactionReceipt): ProxyV3.AddCommissionEvent[];
     decodeAddCommissionEvent(event: Event): ProxyV3.AddCommissionEvent;
+    parseAddProjectAdminEvent(receipt: TransactionReceipt): ProxyV3.AddProjectAdminEvent[];
+    decodeAddProjectAdminEvent(event: Event): ProxyV3.AddProjectAdminEvent;
     parseAuthorizeEvent(receipt: TransactionReceipt): ProxyV3.AuthorizeEvent[];
     decodeAuthorizeEvent(event: Event): ProxyV3.AuthorizeEvent;
     parseClaimEvent(receipt: TransactionReceipt): ProxyV3.ClaimEvent[];
@@ -81,6 +95,8 @@ export declare class ProxyV3 extends _Contract {
     decodeNewCampaignEvent(event: Event): ProxyV3.NewCampaignEvent;
     parseNewProjectEvent(receipt: TransactionReceipt): ProxyV3.NewProjectEvent[];
     decodeNewProjectEvent(event: Event): ProxyV3.NewProjectEvent;
+    parseRemoveProjectAdminEvent(receipt: TransactionReceipt): ProxyV3.RemoveProjectAdminEvent[];
+    decodeRemoveProjectAdminEvent(event: Event): ProxyV3.RemoveProjectAdminEvent;
     parseSetProtocolRateEvent(receipt: TransactionReceipt): ProxyV3.SetProtocolRateEvent[];
     decodeSetProtocolRateEvent(event: Event): ProxyV3.SetProtocolRateEvent;
     parseSkimEvent(receipt: TransactionReceipt): ProxyV3.SkimEvent[];
@@ -89,12 +105,21 @@ export declare class ProxyV3 extends _Contract {
     decodeStakeEvent(event: Event): ProxyV3.StakeEvent;
     parseStartOwnershipTransferEvent(receipt: TransactionReceipt): ProxyV3.StartOwnershipTransferEvent[];
     decodeStartOwnershipTransferEvent(event: Event): ProxyV3.StartOwnershipTransferEvent;
+    parseTakeoverProjectOwnershipEvent(receipt: TransactionReceipt): ProxyV3.TakeoverProjectOwnershipEvent[];
+    decodeTakeoverProjectOwnershipEvent(event: Event): ProxyV3.TakeoverProjectOwnershipEvent;
     parseTransferBackEvent(receipt: TransactionReceipt): ProxyV3.TransferBackEvent[];
     decodeTransferBackEvent(event: Event): ProxyV3.TransferBackEvent;
     parseTransferForwardEvent(receipt: TransactionReceipt): ProxyV3.TransferForwardEvent[];
     decodeTransferForwardEvent(event: Event): ProxyV3.TransferForwardEvent;
     parseTransferOwnershipEvent(receipt: TransactionReceipt): ProxyV3.TransferOwnershipEvent[];
     decodeTransferOwnershipEvent(event: Event): ProxyV3.TransferOwnershipEvent;
+    parseTransferProjectOwnershipEvent(receipt: TransactionReceipt): ProxyV3.TransferProjectOwnershipEvent[];
+    decodeTransferProjectOwnershipEvent(event: Event): ProxyV3.TransferProjectOwnershipEvent;
+    addProjectAdmin: {
+        (params: IAddProjectAdminParams, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (params: IAddProjectAdminParams, options?: TransactionOptions) => Promise<void>;
+        txData: (params: IAddProjectAdminParams, options?: TransactionOptions) => Promise<string>;
+    };
     campaignAccumulatedCommission: {
         (params: ICampaignAccumulatedCommissionParams, options?: TransactionOptions): Promise<BigNumber>;
     };
@@ -201,6 +226,16 @@ export declare class ProxyV3 extends _Contract {
             token: string;
             balance: BigNumber;
         }[]>;
+    };
+    getProject: {
+        (projectId: number | BigNumber, options?: TransactionOptions): Promise<{
+            owner: string;
+            newOwner: string;
+            projectAdmins: string[];
+        }>;
+    };
+    getProjectAdminsLength: {
+        (projectId: number | BigNumber, options?: TransactionOptions): Promise<BigNumber>;
     };
     isPermitted: {
         (param1: string, options?: TransactionOptions): Promise<boolean>;
@@ -309,6 +344,11 @@ export declare class ProxyV3 extends _Contract {
         call: (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions) => Promise<void>;
         txData: (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions) => Promise<string>;
     };
+    removeProjectAdmin: {
+        (params: IRemoveProjectAdminParams, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (params: IRemoveProjectAdminParams, options?: TransactionOptions) => Promise<void>;
+        txData: (params: IRemoveProjectAdminParams, options?: TransactionOptions) => Promise<string>;
+    };
     setProtocolRate: {
         (newRate: number | BigNumber, options?: TransactionOptions): Promise<TransactionReceipt>;
         call: (newRate: number | BigNumber, options?: TransactionOptions) => Promise<void>;
@@ -342,10 +382,20 @@ export declare class ProxyV3 extends _Contract {
         call: (options?: TransactionOptions) => Promise<void>;
         txData: (options?: TransactionOptions) => Promise<string>;
     };
+    takeoverProjectOwnership: {
+        (projectId: number | BigNumber, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (projectId: number | BigNumber, options?: TransactionOptions) => Promise<void>;
+        txData: (projectId: number | BigNumber, options?: TransactionOptions) => Promise<string>;
+    };
     transferOwnership: {
         (newOwner: string, options?: TransactionOptions): Promise<TransactionReceipt>;
         call: (newOwner: string, options?: TransactionOptions) => Promise<void>;
         txData: (newOwner: string, options?: TransactionOptions) => Promise<string>;
+    };
+    transferProjectOwnership: {
+        (params: ITransferProjectOwnershipParams, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (params: ITransferProjectOwnershipParams, options?: TransactionOptions) => Promise<void>;
+        txData: (params: ITransferProjectOwnershipParams, options?: TransactionOptions) => Promise<string>;
     };
     private assign;
 }
@@ -357,6 +407,11 @@ export declare module ProxyV3 {
         commissionBalance: BigNumber;
         protocolFee: BigNumber;
         protocolFeeBalance: BigNumber;
+        _event: Event;
+    }
+    interface AddProjectAdminEvent {
+        projectId: BigNumber;
+        admin: string;
         _event: Event;
     }
     interface AuthorizeEvent {
@@ -386,6 +441,11 @@ export declare module ProxyV3 {
         projectId: BigNumber;
         _event: Event;
     }
+    interface RemoveProjectAdminEvent {
+        projectId: BigNumber;
+        admin: string;
+        _event: Event;
+    }
     interface SetProtocolRateEvent {
         protocolRate: BigNumber;
         _event: Event;
@@ -407,6 +467,11 @@ export declare module ProxyV3 {
         user: string;
         _event: Event;
     }
+    interface TakeoverProjectOwnershipEvent {
+        projectId: BigNumber;
+        newOwner: string;
+        _event: Event;
+    }
     interface TransferBackEvent {
         target: string;
         token: string;
@@ -423,6 +488,11 @@ export declare module ProxyV3 {
     }
     interface TransferOwnershipEvent {
         user: string;
+        _event: Event;
+    }
+    interface TransferProjectOwnershipEvent {
+        projectId: BigNumber;
+        newOwner: string;
         _event: Event;
     }
 }

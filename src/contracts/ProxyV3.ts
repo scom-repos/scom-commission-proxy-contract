@@ -1,5 +1,6 @@
 import {IWallet, Contract as _Contract, Transaction, TransactionReceipt, BigNumber, Event, IBatchRequestObj, TransactionOptions} from "@ijstech/eth-contract";
 import Bin from "./ProxyV3.json";
+export interface IAddProjectAdminParams {projectId:number|BigNumber;admin:string}
 export interface ICampaignAccumulatedCommissionParams {param1:number|BigNumber;param2:string}
 export interface IClaimantIdsParams {param1:string;param2:string}
 export interface IGetCampaignParams {campaignId:number|BigNumber;returnArrays:boolean}
@@ -9,9 +10,11 @@ export interface IGetClaimantBalanceParams {claimant:string;token:string}
 export interface IGetClaimantsInfoParams {fromId:number|BigNumber;count:number|BigNumber}
 export interface IProjectBalanceParams {param1:number|BigNumber;param2:string}
 export interface IProxyCallParams {referrer:string;campaignId:number|BigNumber;target:string;tokensIn:{token:string,amount:number|BigNumber}[];to:string;tokensOut:string[];data:string}
+export interface IRemoveProjectAdminParams {projectId:number|BigNumber;admin:string}
 export interface IStakeParams {projectId:number|BigNumber;token:string;amount:number|BigNumber}
 export interface IStakeMultipleParams {projectId:number|BigNumber;token:string[];amount:(number|BigNumber)[]}
 export interface IStakesBalanceParams {param1:number|BigNumber;param2:string}
+export interface ITransferProjectOwnershipParams {projectId:number|BigNumber;newOwner:string}
 export class ProxyV3 extends _Contract{
     static _abi: any = Bin.abi;
     constructor(wallet: IWallet, address?: string){
@@ -33,6 +36,17 @@ export class ProxyV3 extends _Contract{
             commissionBalance: new BigNumber(result.commissionBalance),
             protocolFee: new BigNumber(result.protocolFee),
             protocolFeeBalance: new BigNumber(result.protocolFeeBalance),
+            _event: event
+        };
+    }
+    parseAddProjectAdminEvent(receipt: TransactionReceipt): ProxyV3.AddProjectAdminEvent[]{
+        return this.parseEvents(receipt, "AddProjectAdmin").map(e=>this.decodeAddProjectAdminEvent(e));
+    }
+    decodeAddProjectAdminEvent(event: Event): ProxyV3.AddProjectAdminEvent{
+        let result = event.data;
+        return {
+            projectId: new BigNumber(result.projectId),
+            admin: result.admin,
             _event: event
         };
     }
@@ -99,6 +113,17 @@ export class ProxyV3 extends _Contract{
             _event: event
         };
     }
+    parseRemoveProjectAdminEvent(receipt: TransactionReceipt): ProxyV3.RemoveProjectAdminEvent[]{
+        return this.parseEvents(receipt, "RemoveProjectAdmin").map(e=>this.decodeRemoveProjectAdminEvent(e));
+    }
+    decodeRemoveProjectAdminEvent(event: Event): ProxyV3.RemoveProjectAdminEvent{
+        let result = event.data;
+        return {
+            projectId: new BigNumber(result.projectId),
+            admin: result.admin,
+            _event: event
+        };
+    }
     parseSetProtocolRateEvent(receipt: TransactionReceipt): ProxyV3.SetProtocolRateEvent[]{
         return this.parseEvents(receipt, "SetProtocolRate").map(e=>this.decodeSetProtocolRateEvent(e));
     }
@@ -144,6 +169,17 @@ export class ProxyV3 extends _Contract{
             _event: event
         };
     }
+    parseTakeoverProjectOwnershipEvent(receipt: TransactionReceipt): ProxyV3.TakeoverProjectOwnershipEvent[]{
+        return this.parseEvents(receipt, "TakeoverProjectOwnership").map(e=>this.decodeTakeoverProjectOwnershipEvent(e));
+    }
+    decodeTakeoverProjectOwnershipEvent(event: Event): ProxyV3.TakeoverProjectOwnershipEvent{
+        let result = event.data;
+        return {
+            projectId: new BigNumber(result.projectId),
+            newOwner: result.newOwner,
+            _event: event
+        };
+    }
     parseTransferBackEvent(receipt: TransactionReceipt): ProxyV3.TransferBackEvent[]{
         return this.parseEvents(receipt, "TransferBack").map(e=>this.decodeTransferBackEvent(e));
     }
@@ -179,6 +215,22 @@ export class ProxyV3 extends _Contract{
             user: result.user,
             _event: event
         };
+    }
+    parseTransferProjectOwnershipEvent(receipt: TransactionReceipt): ProxyV3.TransferProjectOwnershipEvent[]{
+        return this.parseEvents(receipt, "TransferProjectOwnership").map(e=>this.decodeTransferProjectOwnershipEvent(e));
+    }
+    decodeTransferProjectOwnershipEvent(event: Event): ProxyV3.TransferProjectOwnershipEvent{
+        let result = event.data;
+        return {
+            projectId: new BigNumber(result.projectId),
+            newOwner: result.newOwner,
+            _event: event
+        };
+    }
+    addProjectAdmin: {
+        (params: IAddProjectAdminParams, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (params: IAddProjectAdminParams, options?: TransactionOptions) => Promise<void>;
+        txData: (params: IAddProjectAdminParams, options?: TransactionOptions) => Promise<string>;
     }
     campaignAccumulatedCommission: {
         (params: ICampaignAccumulatedCommissionParams, options?: TransactionOptions): Promise<BigNumber>;
@@ -235,6 +287,12 @@ export class ProxyV3 extends _Contract{
     getClaimantsInfo: {
         (params: IGetClaimantsInfoParams, options?: TransactionOptions): Promise<{claimant:string,token:string,balance:BigNumber}[]>;
     }
+    getProject: {
+        (projectId:number|BigNumber, options?: TransactionOptions): Promise<{owner:string,newOwner:string,projectAdmins:string[]}>;
+    }
+    getProjectAdminsLength: {
+        (projectId:number|BigNumber, options?: TransactionOptions): Promise<BigNumber>;
+    }
     isPermitted: {
         (param1:string, options?: TransactionOptions): Promise<boolean>;
     }
@@ -276,6 +334,11 @@ export class ProxyV3 extends _Contract{
         call: (params: IProxyCallParams, options?: number|BigNumber|TransactionOptions) => Promise<void>;
         txData: (params: IProxyCallParams, options?: number|BigNumber|TransactionOptions) => Promise<string>;
     }
+    removeProjectAdmin: {
+        (params: IRemoveProjectAdminParams, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (params: IRemoveProjectAdminParams, options?: TransactionOptions) => Promise<void>;
+        txData: (params: IRemoveProjectAdminParams, options?: TransactionOptions) => Promise<string>;
+    }
     setProtocolRate: {
         (newRate:number|BigNumber, options?: TransactionOptions): Promise<TransactionReceipt>;
         call: (newRate:number|BigNumber, options?: TransactionOptions) => Promise<void>;
@@ -309,10 +372,20 @@ export class ProxyV3 extends _Contract{
         call: (options?: TransactionOptions) => Promise<void>;
         txData: (options?: TransactionOptions) => Promise<string>;
     }
+    takeoverProjectOwnership: {
+        (projectId:number|BigNumber, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (projectId:number|BigNumber, options?: TransactionOptions) => Promise<void>;
+        txData: (projectId:number|BigNumber, options?: TransactionOptions) => Promise<string>;
+    }
     transferOwnership: {
         (newOwner:string, options?: TransactionOptions): Promise<TransactionReceipt>;
         call: (newOwner:string, options?: TransactionOptions) => Promise<void>;
         txData: (newOwner:string, options?: TransactionOptions) => Promise<string>;
+    }
+    transferProjectOwnership: {
+        (params: ITransferProjectOwnershipParams, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (params: ITransferProjectOwnershipParams, options?: TransactionOptions) => Promise<void>;
+        txData: (params: ITransferProjectOwnershipParams, options?: TransactionOptions) => Promise<string>;
     }
     private assign(){
         let campaignAccumulatedCommissionParams = (params: ICampaignAccumulatedCommissionParams) => [this.wallet.utils.toString(params.param1),params.param2];
@@ -436,6 +509,20 @@ export class ProxyV3 extends _Contract{
             )));
         }
         this.getClaimantsInfo = getClaimantsInfo_call
+        let getProject_call = async (projectId:number|BigNumber, options?: TransactionOptions): Promise<{owner:string,newOwner:string,projectAdmins:string[]}> => {
+            let result = await this.call('getProject',[this.wallet.utils.toString(projectId)],options);
+            return {
+                owner: result.owner,
+                newOwner: result.newOwner,
+                projectAdmins: result.projectAdmins
+            };
+        }
+        this.getProject = getProject_call
+        let getProjectAdminsLength_call = async (projectId:number|BigNumber, options?: TransactionOptions): Promise<BigNumber> => {
+            let result = await this.call('getProjectAdminsLength',[this.wallet.utils.toString(projectId)],options);
+            return new BigNumber(result);
+        }
+        this.getProjectAdminsLength = getProjectAdminsLength_call
         let isPermitted_call = async (param1:string, options?: TransactionOptions): Promise<boolean> => {
             let result = await this.call('isPermitted',[param1],options);
             return result;
@@ -478,6 +565,23 @@ export class ProxyV3 extends _Contract{
             return new BigNumber(result);
         }
         this.stakesBalance = stakesBalance_call
+        let addProjectAdminParams = (params: IAddProjectAdminParams) => [this.wallet.utils.toString(params.projectId),params.admin];
+        let addProjectAdmin_send = async (params: IAddProjectAdminParams, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('addProjectAdmin',addProjectAdminParams(params),options);
+            return result;
+        }
+        let addProjectAdmin_call = async (params: IAddProjectAdminParams, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('addProjectAdmin',addProjectAdminParams(params),options);
+            return;
+        }
+        let addProjectAdmin_txData = async (params: IAddProjectAdminParams, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('addProjectAdmin',addProjectAdminParams(params),options);
+            return result;
+        }
+        this.addProjectAdmin = Object.assign(addProjectAdmin_send, {
+            call:addProjectAdmin_call
+            , txData:addProjectAdmin_txData
+        });
         let claim_send = async (token:string, options?: TransactionOptions): Promise<TransactionReceipt> => {
             let result = await this.send('claim',[token],options);
             return result;
@@ -623,6 +727,23 @@ export class ProxyV3 extends _Contract{
             call:proxyCall_call
             , txData:proxyCall_txData
         });
+        let removeProjectAdminParams = (params: IRemoveProjectAdminParams) => [this.wallet.utils.toString(params.projectId),params.admin];
+        let removeProjectAdmin_send = async (params: IRemoveProjectAdminParams, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('removeProjectAdmin',removeProjectAdminParams(params),options);
+            return result;
+        }
+        let removeProjectAdmin_call = async (params: IRemoveProjectAdminParams, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('removeProjectAdmin',removeProjectAdminParams(params),options);
+            return;
+        }
+        let removeProjectAdmin_txData = async (params: IRemoveProjectAdminParams, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('removeProjectAdmin',removeProjectAdminParams(params),options);
+            return result;
+        }
+        this.removeProjectAdmin = Object.assign(removeProjectAdmin_send, {
+            call:removeProjectAdmin_call
+            , txData:removeProjectAdmin_txData
+        });
         let setProtocolRate_send = async (newRate:number|BigNumber, options?: TransactionOptions): Promise<TransactionReceipt> => {
             let result = await this.send('setProtocolRate',[this.wallet.utils.toString(newRate)],options);
             return result;
@@ -721,6 +842,22 @@ export class ProxyV3 extends _Contract{
             call:takeOwnership_call
             , txData:takeOwnership_txData
         });
+        let takeoverProjectOwnership_send = async (projectId:number|BigNumber, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('takeoverProjectOwnership',[this.wallet.utils.toString(projectId)],options);
+            return result;
+        }
+        let takeoverProjectOwnership_call = async (projectId:number|BigNumber, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('takeoverProjectOwnership',[this.wallet.utils.toString(projectId)],options);
+            return;
+        }
+        let takeoverProjectOwnership_txData = async (projectId:number|BigNumber, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('takeoverProjectOwnership',[this.wallet.utils.toString(projectId)],options);
+            return result;
+        }
+        this.takeoverProjectOwnership = Object.assign(takeoverProjectOwnership_send, {
+            call:takeoverProjectOwnership_call
+            , txData:takeoverProjectOwnership_txData
+        });
         let transferOwnership_send = async (newOwner:string, options?: TransactionOptions): Promise<TransactionReceipt> => {
             let result = await this.send('transferOwnership',[newOwner],options);
             return result;
@@ -737,21 +874,42 @@ export class ProxyV3 extends _Contract{
             call:transferOwnership_call
             , txData:transferOwnership_txData
         });
+        let transferProjectOwnershipParams = (params: ITransferProjectOwnershipParams) => [this.wallet.utils.toString(params.projectId),params.newOwner];
+        let transferProjectOwnership_send = async (params: ITransferProjectOwnershipParams, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('transferProjectOwnership',transferProjectOwnershipParams(params),options);
+            return result;
+        }
+        let transferProjectOwnership_call = async (params: ITransferProjectOwnershipParams, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('transferProjectOwnership',transferProjectOwnershipParams(params),options);
+            return;
+        }
+        let transferProjectOwnership_txData = async (params: ITransferProjectOwnershipParams, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('transferProjectOwnership',transferProjectOwnershipParams(params),options);
+            return result;
+        }
+        this.transferProjectOwnership = Object.assign(transferProjectOwnership_send, {
+            call:transferProjectOwnership_call
+            , txData:transferProjectOwnership_txData
+        });
     }
 }
 export module ProxyV3{
     export interface AddCommissionEvent {to:string,token:string,commission:BigNumber,commissionBalance:BigNumber,protocolFee:BigNumber,protocolFeeBalance:BigNumber,_event:Event}
+    export interface AddProjectAdminEvent {projectId:BigNumber,admin:string,_event:Event}
     export interface AuthorizeEvent {user:string,_event:Event}
     export interface ClaimEvent {from:string,token:string,amount:BigNumber,_event:Event}
     export interface ClaimProtocolFeeEvent {token:string,amount:BigNumber,_event:Event}
     export interface DeauthorizeEvent {user:string,_event:Event}
     export interface NewCampaignEvent {campaignId:BigNumber,_event:Event}
     export interface NewProjectEvent {projectId:BigNumber,_event:Event}
+    export interface RemoveProjectAdminEvent {projectId:BigNumber,admin:string,_event:Event}
     export interface SetProtocolRateEvent {protocolRate:BigNumber,_event:Event}
     export interface SkimEvent {token:string,to:string,amount:BigNumber,_event:Event}
     export interface StakeEvent {projectId:BigNumber,token:string,amount:BigNumber,balance:BigNumber,_event:Event}
     export interface StartOwnershipTransferEvent {user:string,_event:Event}
+    export interface TakeoverProjectOwnershipEvent {projectId:BigNumber,newOwner:string,_event:Event}
     export interface TransferBackEvent {target:string,token:string,sender:string,amount:BigNumber,_event:Event}
     export interface TransferForwardEvent {target:string,token:string,sender:string,amount:BigNumber,_event:Event}
     export interface TransferOwnershipEvent {user:string,_event:Event}
+    export interface TransferProjectOwnershipEvent {projectId:BigNumber,newOwner:string,_event:Event}
 }
