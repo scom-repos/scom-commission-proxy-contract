@@ -67,29 +67,29 @@ function _print(o:any, indent?:string) {
     }
     return s;
 }
-export function assertEqual(a:any, b:any, include?: boolean) {
-    return _assertEqual(a, b, include);
+export function assertEqual(actual:any, expected:any, include?: boolean) {
+    return _assertEqual(actual, expected, include);
 }
-function _assertEqual(a:any, b:any, include?: boolean, path?:string) {
+function _assertEqual(actual:any, expected:any, include?: boolean, path?:string) {
     path = path || "";
 
-    if (!a) {
-        assert.equal(a, b);
-    } else if (a._isBigNumber){
-        // assert(BigNumber.isBigNumber(b));
-        assert.equal(a.toFixed(), new BigNumber(b).toFixed());
-    } else if (Array.isArray(a)){
-        assert(Array.isArray(b));
-        assert.equal(a.length, b.length);
-        a.forEach((e,i) => _assertEqual(e, b[i], include, `${path}[${i}]`));
-    } else if (typeof a === 'object') {
-        assert.equal(typeof b, 'object');
+    if (!actual) {
+        assert.equal(actual, expected);
+    } else if (actual._isBigNumber){
+        // assert(BigNumber.isBigNumber(expected));
+        assert.equal(actual.toFixed(), new BigNumber(expected).toFixed());
+    } else if (Array.isArray(actual)){
+        assert(Array.isArray(expected));
+        assert.equal(actual.length, expected.length);
+        actual.forEach((e,i) => _assertEqual(e, expected[i], include, `${path}[${i}]`));
+    } else if (typeof actual === 'object') {
+        assert.equal(typeof expected, 'object');
         if (!include)
-            assert.deepEqual(Object.keys(a), Object.keys(b));
-        for (let key in b) {
-            _assertEqual(a[key], b[key], include, `${path}.${key}`);
+            assert.deepEqual(Object.keys(actual), Object.keys(expected));
+        for (let key in expected) {
+            _assertEqual(actual[key], expected[key], include, `${path}.${key}`);
         }
     } else {
-        assert.equal(a, b);
+        assert.equal(actual, expected);
     }
 }

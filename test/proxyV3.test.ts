@@ -2,37 +2,18 @@ import 'mocha';
 import { getProvider, print, assertEqual } from './helper';
 import {stakeToVote, voteToPass, initHybridRouter, ammAddLiquidity, oracleAddLiquidity}  from './oswapHelper';
 
-import Config from './config';
-import networks from "../data/networks";
-
 import { Utils, Wallet, Contract, BigNumber, TransactionReceipt, Erc20 } from "@ijstech/eth-wallet";
 import * as OSWAP from "@scom/oswap-openswap-contract";
 import { WETH9 as WETH, MockPriceOracle, MockErc20, MockOracleAdaptor3 } from "../packages/mock-contracts/src/contracts";
 
-import Ganache from "ganache";
 import * as assert from 'assert';
-
-import fs from "fs";
-import path from "path";
 
 // import {expect, use} from "chai";
 // import chaibignumber from "chai-bignumber";
 // use(chaibignumber(BigNumber));
 
 import { Contracts, deploy } from '../src';
-import { utils } from 'mocha';
 
-const outputPath = path.join(__dirname, "address.json");
-const Address = ((!Config.networks[0].chainName.startsWith("local")) && fs.existsSync(outputPath)) ? JSON.parse(fs.readFileSync(outputPath, 'utf8').trim() || "{}") : {};
-
-const TIME_FOR_VOTING = 3;
-
-const LP_STAKE_USD = 10000;
-const LP_STAKE_OSWAP = 100000;
-const SUPER_TROLL_NFT_PRICE = 300000; // in oswap
-const GENERAL_TROLL_NFT_PRICE = 25000; // in oswap
-const TROLL_NFT_FEE = 100; // in oswap
-const TROLL_OSWAP_BOND = 1000; // bond > swapInputAamount / oswapPrice
 const OSWAP_PRICE = 0.1;
 const UNI_POOL_SIZE = 1000000;
 const CAKE_POOL_SIZE = 1000000;
@@ -47,25 +28,7 @@ const UNI_PRICE_USD = 20;
 const BNB_PRICE_USD = 400;
 const ETH_PRICE_USD = 4000;
 
-function isLocalNetwork(chainName: string) {
-    return chainName.includes("ganache") || chainName.includes("Ganache") || chainName.includes("hardhat") || chainName.includes("Hardhat");
-}
 describe('proxy', function () {
-    if (Config.networks.some(e => networks[e.chainName]
-        && networks[e.chainName].rpc
-        && networks[e.chainName].rpc.includes("infura.io"))
-        && !process.env.INFURA_ID) {
-        console.log("Please set env INFURA_ID, e.g.: INFURA_ID=<INFURA_ID> npm run test");
-        return process.exit();
-    }
-    if (!Config.oswapAccounts[0].privateKey.startsWith("0x")) {
-        console.log("Please set priv key of " + Config.oswapAccounts[0].address + " in config");
-        return process.exit();
-    }
-
-    let chainName = Config.networks[0].chainName;
-    let chainId: number = networks[chainName].networkId;
-
     let accounts: string[];
     let wallet: Wallet;
 
@@ -112,19 +75,6 @@ describe('proxy', function () {
         cake = new Erc20(wallet, await new MockErc20(wallet).deploy({name:"CAKE", symbol:"CAKE", decimals:18}));
         console.log(`cake: ${cake.address}`);
     });
-    async function checkBalance(wallet: Wallet, chain: string, oswap: OSWAP.OpenSwap, address: string, amount: BigNumber) {
-        if ((await oswap.balanceOf(address)).lt(amount)) {
-            if (isLocalNetwork(chain)) {
-                let _address = wallet.defaultAccount;
-                wallet.defaultAccount = admin;//Config.oswapAccounts[0].address;
-                await oswap.mint({ address: address, amount: amount.times(10) });
-                wallet.defaultAccount = _address;
-            } else {
-                console.log(address + " doesn't have enough oswap");
-                return process.exit(0);
-            }
-        }
-    }
     before('Deploy oswap\'s contracts', async function () {
         wallet.defaultAccount = admin;
         oswapContracts = OSWAP.toDeploymentContracts(<any>wallet, await OSWAP.deploy(<any>wallet, {tokens: {weth: weth.address}, hybridRouter: {}}));
@@ -163,20 +113,32 @@ describe('proxy', function () {
 
     let projectId: number;
     let campaignId: number;
-    it('register', async function () {
+    it('register project', async function () {
+        // new project
         wallet.defaultAccount = projectOwner;
         let receipt = await proxy.newProject([projectAdmin]);
         let newProjectEvent = proxy.parseNewProjectEvent(receipt);
+        assertEqual(newProjectEvent.length, 1);
+        assertEqual(newProjectEvent[0], {
+            projectId: 0
+        }, true);
         projectId = newProjectEvent[0].projectId.toNumber();
-
+        assertEqual(await proxy.getProject(projectId), {
+            owner: projectOwner,
+            newOwner: Utils.nullAddress,
+            projectAdmins: [projectOwner, projectAdmin]
+        });
+        assertEqual(await proxy.getProjectAdminsLength(projectId), 2);
+    });
+    it('register campaign', async function () {
         wallet.defaultAccount = projectAdmin;
         let selector = ["swapExactTokensForTokens", "swapTokensForExactTokens", "swapExactETHForTokens", "swapTokensForExactETH", "swapExactTokensForETH", "swapETHForExactTokens"];
         selector = selector.map(e=>e + "(" + oswapContracts.router._abi.filter(f=>f.name==e)[0].inputs.map(f=>f.type).join(',') + ")");
         selector = selector.map(e=>wallet.soliditySha3(e).substring(0,10));
-        selector = selector.map(e=>oswapContracts.router.address + e.replace("0x", ""));
+        selector = selector.map(e=>oswapContracts.router.address.toLowerCase() + e.replace("0x", ""));
         console.log(selector);
         let now = await wallet.getBlockTimestamp();
-        receipt = await proxy.newCampaign({
+        let campaign = {
             projectId: projectId,
             // target: oswapContracts.router.address,
             // selector: selector,
@@ -204,13 +166,25 @@ describe('proxy', function () {
             outTokens: [],
             commissionOutTokenConfig: [],
             referrers: [referrer1]
-        });
+        };
+        let receipt = await proxy.newCampaign(campaign);
         let newCamapignEvent = proxy.parseNewCampaignEvent(receipt);
+        assertEqual(newCamapignEvent.length, 1);
+        assertEqual(newCamapignEvent[0], {
+            campaignId: 0
+        }, true);
         campaignId = newCamapignEvent[0].campaignId.toNumber();
 
-        print(await proxy.getCampaign({campaignId:campaignId, returnArrays:true}));
+        let _campaign = await proxy.getCampaign({campaignId:campaignId, returnArrays:true});
+        assertEqual(_campaign, campaign);
+
         let len = await proxy.getCampaignArrayLength(campaignId);
-        print(len);
+        assertEqual(len, {
+            targetAndSelectorsLength: 6,
+            inTokensLength: 2,
+            outTokensLength: 0,
+            referrersLength: 1
+        });
         print(await proxy.getCampaignArrayData1({
             campaignId: campaignId, 
             targetAndSelectorsStart:0, targetAndSelectorsLength: len.targetAndSelectorsLength,
@@ -221,17 +195,34 @@ describe('proxy', function () {
             inTokensStart: 0, inTokensLength: len.inTokensLength, 
             outTokensStart: 0, outTokensLength: len.outTokensLength
         }));
-
-
+    });
+    it('project staking', async function () {
         wallet.defaultAccount = admin;
         await busd.mint({address:admin,amount:Utils.toDecimals(1000)});
 
         wallet.defaultAccount = admin;
         await busd.approve({spender: proxy.address, amount:Utils.toDecimals(1000)});
-        receipt = await proxy.stake({projectId: projectId, token:busd.address, amount:Utils.toDecimals(1000)});
-        proxy.parseStakeEvent(receipt);
+        let receipt = await proxy.stake({projectId: projectId, token:busd.address, amount:Utils.toDecimals(1000)});
+        let stakeEvent = proxy.parseStakeEvent(receipt);
+        assertEqual(stakeEvent.length, 1);
+        assertEqual(stakeEvent[0], {
+            projectId: 0, 
+            token: busd.address, 
+            amount: Utils.toDecimals(1000), 
+            balance: Utils.toDecimals(1000)
+        }, true);
+        assertEqual(await proxy.stakesBalance({param1: projectId, param2: busd.address}), Utils.toDecimals(1000));
+
         receipt = await proxy.stakeETH(projectId, Utils.toDecimals(10));
-        proxy.parseStakeEvent(receipt);
+        stakeEvent = proxy.parseStakeEvent(receipt);
+        assertEqual(stakeEvent.length, 1);
+        assertEqual(stakeEvent[0], {
+            projectId: 0, 
+            token: Utils.nullAddress, 
+            amount: Utils.toDecimals(10), 
+            balance: Utils.toDecimals(10)
+        }, true);
+        assertEqual(await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress}), Utils.toDecimals(10));
 
         let balance = await proxy.lastBalance(busd.address);
         assertEqual(balance, Utils.toDecimals(1000));
@@ -359,7 +350,7 @@ describe('proxy', function () {
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1);
-        assert.strictEqual(balance.toFixed(), "10000.098771512"); // 10000 + 0.099 - gas fee
+        assert.strictEqual(balance.toFixed(), "10000.09877142"); // 10000 + 0.099 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals("990.1").toFixed());
