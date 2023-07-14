@@ -18,8 +18,8 @@ export class ProxyV3 extends _Contract{
         super(wallet, address, Bin.abi, Bin.bytecode);
         this.assign()
     }
-    deploy(options?: TransactionOptions): Promise<string>{
-        return this.__deploy([], options);
+    deploy(protocolRate:number|BigNumber, options?: TransactionOptions): Promise<string>{
+        return this.__deploy([this.wallet.utils.toString(protocolRate)], options);
     }
     parseAddCommissionEvent(receipt: TransactionReceipt): ProxyV3.AddCommissionEvent[]{
         return this.parseEvents(receipt, "AddCommission").map(e=>this.decodeAddCommissionEvent(e));
@@ -29,7 +29,20 @@ export class ProxyV3 extends _Contract{
         return {
             to: result.to,
             token: result.token,
-            amount: new BigNumber(result.amount),
+            commission: new BigNumber(result.commission),
+            commissionBalance: new BigNumber(result.commissionBalance),
+            protocolFee: new BigNumber(result.protocolFee),
+            protocolFeeBalance: new BigNumber(result.protocolFeeBalance),
+            _event: event
+        };
+    }
+    parseAuthorizeEvent(receipt: TransactionReceipt): ProxyV3.AuthorizeEvent[]{
+        return this.parseEvents(receipt, "Authorize").map(e=>this.decodeAuthorizeEvent(e));
+    }
+    decodeAuthorizeEvent(event: Event): ProxyV3.AuthorizeEvent{
+        let result = event.data;
+        return {
+            user: result.user,
             _event: event
         };
     }
@@ -42,6 +55,27 @@ export class ProxyV3 extends _Contract{
             from: result.from,
             token: result.token,
             amount: new BigNumber(result.amount),
+            _event: event
+        };
+    }
+    parseClaimProtocolFeeEvent(receipt: TransactionReceipt): ProxyV3.ClaimProtocolFeeEvent[]{
+        return this.parseEvents(receipt, "ClaimProtocolFee").map(e=>this.decodeClaimProtocolFeeEvent(e));
+    }
+    decodeClaimProtocolFeeEvent(event: Event): ProxyV3.ClaimProtocolFeeEvent{
+        let result = event.data;
+        return {
+            token: result.token,
+            amount: new BigNumber(result.amount),
+            _event: event
+        };
+    }
+    parseDeauthorizeEvent(receipt: TransactionReceipt): ProxyV3.DeauthorizeEvent[]{
+        return this.parseEvents(receipt, "Deauthorize").map(e=>this.decodeDeauthorizeEvent(e));
+    }
+    decodeDeauthorizeEvent(event: Event): ProxyV3.DeauthorizeEvent{
+        let result = event.data;
+        return {
+            user: result.user,
             _event: event
         };
     }
@@ -65,6 +99,16 @@ export class ProxyV3 extends _Contract{
             _event: event
         };
     }
+    parseSetProtocolRateEvent(receipt: TransactionReceipt): ProxyV3.SetProtocolRateEvent[]{
+        return this.parseEvents(receipt, "SetProtocolRate").map(e=>this.decodeSetProtocolRateEvent(e));
+    }
+    decodeSetProtocolRateEvent(event: Event): ProxyV3.SetProtocolRateEvent{
+        let result = event.data;
+        return {
+            protocolRate: new BigNumber(result.protocolRate),
+            _event: event
+        };
+    }
     parseSkimEvent(receipt: TransactionReceipt): ProxyV3.SkimEvent[]{
         return this.parseEvents(receipt, "Skim").map(e=>this.decodeSkimEvent(e));
     }
@@ -74,6 +118,29 @@ export class ProxyV3 extends _Contract{
             token: result.token,
             to: result.to,
             amount: new BigNumber(result.amount),
+            _event: event
+        };
+    }
+    parseStakeEvent(receipt: TransactionReceipt): ProxyV3.StakeEvent[]{
+        return this.parseEvents(receipt, "Stake").map(e=>this.decodeStakeEvent(e));
+    }
+    decodeStakeEvent(event: Event): ProxyV3.StakeEvent{
+        let result = event.data;
+        return {
+            projectId: new BigNumber(result.projectId),
+            token: result.token,
+            amount: new BigNumber(result.amount),
+            balance: new BigNumber(result.balance),
+            _event: event
+        };
+    }
+    parseStartOwnershipTransferEvent(receipt: TransactionReceipt): ProxyV3.StartOwnershipTransferEvent[]{
+        return this.parseEvents(receipt, "StartOwnershipTransfer").map(e=>this.decodeStartOwnershipTransferEvent(e));
+    }
+    decodeStartOwnershipTransferEvent(event: Event): ProxyV3.StartOwnershipTransferEvent{
+        let result = event.data;
+        return {
+            user: result.user,
             _event: event
         };
     }
@@ -103,6 +170,16 @@ export class ProxyV3 extends _Contract{
             _event: event
         };
     }
+    parseTransferOwnershipEvent(receipt: TransactionReceipt): ProxyV3.TransferOwnershipEvent[]{
+        return this.parseEvents(receipt, "TransferOwnership").map(e=>this.decodeTransferOwnershipEvent(e));
+    }
+    decodeTransferOwnershipEvent(event: Event): ProxyV3.TransferOwnershipEvent{
+        let result = event.data;
+        return {
+            user: result.user,
+            _event: event
+        };
+    }
     campaignAccumulatedCommission: {
         (params: ICampaignAccumulatedCommissionParams, options?: TransactionOptions): Promise<BigNumber>;
     }
@@ -116,6 +193,16 @@ export class ProxyV3 extends _Contract{
         call: (tokens:string[], options?: TransactionOptions) => Promise<void>;
         txData: (tokens:string[], options?: TransactionOptions) => Promise<string>;
     }
+    claimMultipleProtocolFee: {
+        (tokens:string[], options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (tokens:string[], options?: TransactionOptions) => Promise<void>;
+        txData: (tokens:string[], options?: TransactionOptions) => Promise<string>;
+    }
+    claimProtocolFee: {
+        (token:string, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (token:string, options?: TransactionOptions) => Promise<void>;
+        txData: (token:string, options?: TransactionOptions) => Promise<string>;
+    }
     claimantIdCount: {
         (options?: TransactionOptions): Promise<BigNumber>;
     }
@@ -124,6 +211,11 @@ export class ProxyV3 extends _Contract{
     }
     claimantsInfo: {
         (param1:number|BigNumber, options?: TransactionOptions): Promise<{claimant:string,token:string,balance:BigNumber}>;
+    }
+    deny: {
+        (user:string, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (user:string, options?: TransactionOptions) => Promise<void>;
+        txData: (user:string, options?: TransactionOptions) => Promise<string>;
     }
     getCampaign: {
         (params: IGetCampaignParams, options?: TransactionOptions): Promise<{projectId:BigNumber,maxInputTokensInEachCall:BigNumber,maxOutputTokensInEachCall:BigNumber,referrersRequireApproval:boolean,startDate:BigNumber,endDate:BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:BigNumber,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:BigNumber,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],referrers:string[]}>;
@@ -143,6 +235,9 @@ export class ProxyV3 extends _Contract{
     getClaimantsInfo: {
         (params: IGetClaimantsInfoParams, options?: TransactionOptions): Promise<{claimant:string,token:string,balance:BigNumber}[]>;
     }
+    isPermitted: {
+        (param1:string, options?: TransactionOptions): Promise<boolean>;
+    }
     lastBalance: {
         (param1:string, options?: TransactionOptions): Promise<BigNumber>;
     }
@@ -151,18 +246,40 @@ export class ProxyV3 extends _Contract{
         call: (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions) => Promise<BigNumber>;
         txData: (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions) => Promise<string>;
     }
+    newOwner: {
+        (options?: TransactionOptions): Promise<string>;
+    }
     newProject: {
         (admins:string[], options?: TransactionOptions): Promise<TransactionReceipt>;
         call: (admins:string[], options?: TransactionOptions) => Promise<BigNumber>;
         txData: (admins:string[], options?: TransactionOptions) => Promise<string>;
     }
+    owner: {
+        (options?: TransactionOptions): Promise<string>;
+    }
+    permit: {
+        (user:string, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (user:string, options?: TransactionOptions) => Promise<void>;
+        txData: (user:string, options?: TransactionOptions) => Promise<string>;
+    }
     projectBalance: {
         (params: IProjectBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
+    }
+    protocolFeeBalance: {
+        (param1:string, options?: TransactionOptions): Promise<BigNumber>;
+    }
+    protocolRate: {
+        (options?: TransactionOptions): Promise<BigNumber>;
     }
     proxyCall: {
         (params: IProxyCallParams, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt>;
         call: (params: IProxyCallParams, options?: number|BigNumber|TransactionOptions) => Promise<void>;
         txData: (params: IProxyCallParams, options?: number|BigNumber|TransactionOptions) => Promise<string>;
+    }
+    setProtocolRate: {
+        (newRate:number|BigNumber, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (newRate:number|BigNumber, options?: TransactionOptions) => Promise<void>;
+        txData: (newRate:number|BigNumber, options?: TransactionOptions) => Promise<string>;
     }
     skim: {
         (tokens:string[], options?: TransactionOptions): Promise<TransactionReceipt>;
@@ -186,6 +303,16 @@ export class ProxyV3 extends _Contract{
     }
     stakesBalance: {
         (params: IStakesBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
+    }
+    takeOwnership: {
+        (options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (options?: TransactionOptions) => Promise<void>;
+        txData: (options?: TransactionOptions) => Promise<string>;
+    }
+    transferOwnership: {
+        (newOwner:string, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (newOwner:string, options?: TransactionOptions) => Promise<void>;
+        txData: (newOwner:string, options?: TransactionOptions) => Promise<string>;
     }
     private assign(){
         let campaignAccumulatedCommissionParams = (params: ICampaignAccumulatedCommissionParams) => [this.wallet.utils.toString(params.param1),params.param2];
@@ -309,17 +436,42 @@ export class ProxyV3 extends _Contract{
             )));
         }
         this.getClaimantsInfo = getClaimantsInfo_call
+        let isPermitted_call = async (param1:string, options?: TransactionOptions): Promise<boolean> => {
+            let result = await this.call('isPermitted',[param1],options);
+            return result;
+        }
+        this.isPermitted = isPermitted_call
         let lastBalance_call = async (param1:string, options?: TransactionOptions): Promise<BigNumber> => {
             let result = await this.call('lastBalance',[param1],options);
             return new BigNumber(result);
         }
         this.lastBalance = lastBalance_call
+        let newOwner_call = async (options?: TransactionOptions): Promise<string> => {
+            let result = await this.call('newOwner',[],options);
+            return result;
+        }
+        this.newOwner = newOwner_call
+        let owner_call = async (options?: TransactionOptions): Promise<string> => {
+            let result = await this.call('owner',[],options);
+            return result;
+        }
+        this.owner = owner_call
         let projectBalanceParams = (params: IProjectBalanceParams) => [this.wallet.utils.toString(params.param1),params.param2];
         let projectBalance_call = async (params: IProjectBalanceParams, options?: TransactionOptions): Promise<BigNumber> => {
             let result = await this.call('projectBalance',projectBalanceParams(params),options);
             return new BigNumber(result);
         }
         this.projectBalance = projectBalance_call
+        let protocolFeeBalance_call = async (param1:string, options?: TransactionOptions): Promise<BigNumber> => {
+            let result = await this.call('protocolFeeBalance',[param1],options);
+            return new BigNumber(result);
+        }
+        this.protocolFeeBalance = protocolFeeBalance_call
+        let protocolRate_call = async (options?: TransactionOptions): Promise<BigNumber> => {
+            let result = await this.call('protocolRate',[],options);
+            return new BigNumber(result);
+        }
+        this.protocolRate = protocolRate_call
         let stakesBalanceParams = (params: IStakesBalanceParams) => [this.wallet.utils.toString(params.param1),params.param2];
         let stakesBalance_call = async (params: IStakesBalanceParams, options?: TransactionOptions): Promise<BigNumber> => {
             let result = await this.call('stakesBalance',stakesBalanceParams(params),options);
@@ -358,6 +510,54 @@ export class ProxyV3 extends _Contract{
             call:claimMultiple_call
             , txData:claimMultiple_txData
         });
+        let claimMultipleProtocolFee_send = async (tokens:string[], options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('claimMultipleProtocolFee',[tokens],options);
+            return result;
+        }
+        let claimMultipleProtocolFee_call = async (tokens:string[], options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('claimMultipleProtocolFee',[tokens],options);
+            return;
+        }
+        let claimMultipleProtocolFee_txData = async (tokens:string[], options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('claimMultipleProtocolFee',[tokens],options);
+            return result;
+        }
+        this.claimMultipleProtocolFee = Object.assign(claimMultipleProtocolFee_send, {
+            call:claimMultipleProtocolFee_call
+            , txData:claimMultipleProtocolFee_txData
+        });
+        let claimProtocolFee_send = async (token:string, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('claimProtocolFee',[token],options);
+            return result;
+        }
+        let claimProtocolFee_call = async (token:string, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('claimProtocolFee',[token],options);
+            return;
+        }
+        let claimProtocolFee_txData = async (token:string, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('claimProtocolFee',[token],options);
+            return result;
+        }
+        this.claimProtocolFee = Object.assign(claimProtocolFee_send, {
+            call:claimProtocolFee_call
+            , txData:claimProtocolFee_txData
+        });
+        let deny_send = async (user:string, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('deny',[user],options);
+            return result;
+        }
+        let deny_call = async (user:string, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('deny',[user],options);
+            return;
+        }
+        let deny_txData = async (user:string, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('deny',[user],options);
+            return result;
+        }
+        this.deny = Object.assign(deny_send, {
+            call:deny_call
+            , txData:deny_txData
+        });
         let newCampaign_send = async (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions): Promise<TransactionReceipt> => {
             let result = await this.send('newCampaign',[[this.wallet.utils.toString(params.projectId),this.wallet.utils.toString(params.maxInputTokensInEachCall),this.wallet.utils.toString(params.maxOutputTokensInEachCall),params.referrersRequireApproval,this.wallet.utils.toString(params.startDate),this.wallet.utils.toString(params.endDate),params.targetAndSelectors,params.inTokens,params.commissionInTokenConfig.map(e=>([e.directTransfer,this.wallet.utils.toString(e.rate),this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.outTokens,params.commissionOutTokenConfig.map(e=>([this.wallet.utils.toString(e.rate),this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.referrers]],options);
             return result;
@@ -390,6 +590,22 @@ export class ProxyV3 extends _Contract{
             call:newProject_call
             , txData:newProject_txData
         });
+        let permit_send = async (user:string, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('permit',[user],options);
+            return result;
+        }
+        let permit_call = async (user:string, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('permit',[user],options);
+            return;
+        }
+        let permit_txData = async (user:string, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('permit',[user],options);
+            return result;
+        }
+        this.permit = Object.assign(permit_send, {
+            call:permit_call
+            , txData:permit_txData
+        });
         let proxyCallParams = (params: IProxyCallParams) => [params.referrer,this.wallet.utils.toString(params.campaignId),params.target,params.tokensIn.map(e=>([e.token,this.wallet.utils.toString(e.amount)])),params.to,params.tokensOut,this.wallet.utils.stringToBytes(params.data)];
         let proxyCall_send = async (params: IProxyCallParams, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt> => {
             let result = await this.send('proxyCall',proxyCallParams(params),options);
@@ -406,6 +622,22 @@ export class ProxyV3 extends _Contract{
         this.proxyCall = Object.assign(proxyCall_send, {
             call:proxyCall_call
             , txData:proxyCall_txData
+        });
+        let setProtocolRate_send = async (newRate:number|BigNumber, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('setProtocolRate',[this.wallet.utils.toString(newRate)],options);
+            return result;
+        }
+        let setProtocolRate_call = async (newRate:number|BigNumber, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('setProtocolRate',[this.wallet.utils.toString(newRate)],options);
+            return;
+        }
+        let setProtocolRate_txData = async (newRate:number|BigNumber, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('setProtocolRate',[this.wallet.utils.toString(newRate)],options);
+            return result;
+        }
+        this.setProtocolRate = Object.assign(setProtocolRate_send, {
+            call:setProtocolRate_call
+            , txData:setProtocolRate_txData
         });
         let skim_send = async (tokens:string[], options?: TransactionOptions): Promise<TransactionReceipt> => {
             let result = await this.send('skim',[tokens],options);
@@ -473,14 +705,53 @@ export class ProxyV3 extends _Contract{
             call:stakeMultiple_call
             , txData:stakeMultiple_txData
         });
+        let takeOwnership_send = async (options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('takeOwnership',[],options);
+            return result;
+        }
+        let takeOwnership_call = async (options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('takeOwnership',[],options);
+            return;
+        }
+        let takeOwnership_txData = async (options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('takeOwnership',[],options);
+            return result;
+        }
+        this.takeOwnership = Object.assign(takeOwnership_send, {
+            call:takeOwnership_call
+            , txData:takeOwnership_txData
+        });
+        let transferOwnership_send = async (newOwner:string, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('transferOwnership',[newOwner],options);
+            return result;
+        }
+        let transferOwnership_call = async (newOwner:string, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('transferOwnership',[newOwner],options);
+            return;
+        }
+        let transferOwnership_txData = async (newOwner:string, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('transferOwnership',[newOwner],options);
+            return result;
+        }
+        this.transferOwnership = Object.assign(transferOwnership_send, {
+            call:transferOwnership_call
+            , txData:transferOwnership_txData
+        });
     }
 }
 export module ProxyV3{
-    export interface AddCommissionEvent {to:string,token:string,amount:BigNumber,_event:Event}
+    export interface AddCommissionEvent {to:string,token:string,commission:BigNumber,commissionBalance:BigNumber,protocolFee:BigNumber,protocolFeeBalance:BigNumber,_event:Event}
+    export interface AuthorizeEvent {user:string,_event:Event}
     export interface ClaimEvent {from:string,token:string,amount:BigNumber,_event:Event}
+    export interface ClaimProtocolFeeEvent {token:string,amount:BigNumber,_event:Event}
+    export interface DeauthorizeEvent {user:string,_event:Event}
     export interface NewCampaignEvent {campaignId:BigNumber,_event:Event}
     export interface NewProjectEvent {projectId:BigNumber,_event:Event}
+    export interface SetProtocolRateEvent {protocolRate:BigNumber,_event:Event}
     export interface SkimEvent {token:string,to:string,amount:BigNumber,_event:Event}
+    export interface StakeEvent {projectId:BigNumber,token:string,amount:BigNumber,balance:BigNumber,_event:Event}
+    export interface StartOwnershipTransferEvent {user:string,_event:Event}
     export interface TransferBackEvent {target:string,token:string,sender:string,amount:BigNumber,_event:Event}
     export interface TransferForwardEvent {target:string,token:string,sender:string,amount:BigNumber,_event:Event}
+    export interface TransferOwnershipEvent {user:string,_event:Event}
 }

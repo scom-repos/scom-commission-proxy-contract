@@ -1,6 +1,113 @@
+/// <amd-module name="@scom/scom-commission-proxy-contract/contracts/Authorization.json.ts" />
+declare module "@scom/scom-commission-proxy-contract/contracts/Authorization.json.ts" {
+    const _default: {
+        abi: ({
+            inputs: any[];
+            stateMutability: string;
+            type: string;
+            anonymous?: undefined;
+            name?: undefined;
+            outputs?: undefined;
+        } | {
+            anonymous: boolean;
+            inputs: {
+                indexed: boolean;
+                internalType: string;
+                name: string;
+                type: string;
+            }[];
+            name: string;
+            type: string;
+            stateMutability?: undefined;
+            outputs?: undefined;
+        } | {
+            inputs: {
+                internalType: string;
+                name: string;
+                type: string;
+            }[];
+            name: string;
+            outputs: {
+                internalType: string;
+                name: string;
+                type: string;
+            }[];
+            stateMutability: string;
+            type: string;
+            anonymous?: undefined;
+        })[];
+        bytecode: string;
+    };
+    export default _default;
+}
+/// <amd-module name="@scom/scom-commission-proxy-contract/contracts/Authorization.ts" />
+declare module "@scom/scom-commission-proxy-contract/contracts/Authorization.ts" {
+    import { IWallet, Contract as _Contract, TransactionReceipt, Event, TransactionOptions } from "@ijstech/eth-contract";
+    export class Authorization extends _Contract {
+        static _abi: any;
+        constructor(wallet: IWallet, address?: string);
+        deploy(options?: TransactionOptions): Promise<string>;
+        parseAuthorizeEvent(receipt: TransactionReceipt): Authorization.AuthorizeEvent[];
+        decodeAuthorizeEvent(event: Event): Authorization.AuthorizeEvent;
+        parseDeauthorizeEvent(receipt: TransactionReceipt): Authorization.DeauthorizeEvent[];
+        decodeDeauthorizeEvent(event: Event): Authorization.DeauthorizeEvent;
+        parseStartOwnershipTransferEvent(receipt: TransactionReceipt): Authorization.StartOwnershipTransferEvent[];
+        decodeStartOwnershipTransferEvent(event: Event): Authorization.StartOwnershipTransferEvent;
+        parseTransferOwnershipEvent(receipt: TransactionReceipt): Authorization.TransferOwnershipEvent[];
+        decodeTransferOwnershipEvent(event: Event): Authorization.TransferOwnershipEvent;
+        deny: {
+            (user: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (user: string, options?: TransactionOptions) => Promise<void>;
+            txData: (user: string, options?: TransactionOptions) => Promise<string>;
+        };
+        isPermitted: {
+            (param1: string, options?: TransactionOptions): Promise<boolean>;
+        };
+        newOwner: {
+            (options?: TransactionOptions): Promise<string>;
+        };
+        owner: {
+            (options?: TransactionOptions): Promise<string>;
+        };
+        permit: {
+            (user: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (user: string, options?: TransactionOptions) => Promise<void>;
+            txData: (user: string, options?: TransactionOptions) => Promise<string>;
+        };
+        takeOwnership: {
+            (options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (options?: TransactionOptions) => Promise<void>;
+            txData: (options?: TransactionOptions) => Promise<string>;
+        };
+        transferOwnership: {
+            (newOwner: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (newOwner: string, options?: TransactionOptions) => Promise<void>;
+            txData: (newOwner: string, options?: TransactionOptions) => Promise<string>;
+        };
+        private assign;
+    }
+    export module Authorization {
+        interface AuthorizeEvent {
+            user: string;
+            _event: Event;
+        }
+        interface DeauthorizeEvent {
+            user: string;
+            _event: Event;
+        }
+        interface StartOwnershipTransferEvent {
+            user: string;
+            _event: Event;
+        }
+        interface TransferOwnershipEvent {
+            user: string;
+            _event: Event;
+        }
+    }
+}
 /// <amd-module name="@scom/scom-commission-proxy-contract/contracts/Proxy.json.ts" />
 declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.json.ts" {
-    const _default: {
+    const _default_1: {
         abi: ({
             anonymous: boolean;
             inputs: {
@@ -89,7 +196,7 @@ declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.json.ts" {
         })[];
         bytecode: string;
     };
-    export default _default;
+    export default _default_1;
 }
 /// <amd-module name="@scom/scom-commission-proxy-contract/contracts/Proxy.ts" />
 declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.ts" {
@@ -252,7 +359,7 @@ declare module "@scom/scom-commission-proxy-contract/contracts/Proxy.ts" {
 }
 /// <amd-module name="@scom/scom-commission-proxy-contract/contracts/ProxyV2.json.ts" />
 declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV2.json.ts" {
-    const _default_1: {
+    const _default_2: {
         abi: ({
             anonymous: boolean;
             inputs: {
@@ -341,7 +448,7 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV2.json.ts" 
         })[];
         bytecode: string;
     };
-    export default _default_1;
+    export default _default_2;
 }
 /// <amd-module name="@scom/scom-commission-proxy-contract/contracts/ProxyV2.ts" />
 declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV2.ts" {
@@ -506,9 +613,13 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV2.ts" {
 }
 /// <amd-module name="@scom/scom-commission-proxy-contract/contracts/ProxyV3.json.ts" />
 declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.json.ts" {
-    const _default_2: {
+    const _default_3: {
         abi: ({
-            inputs: any[];
+            inputs: {
+                internalType: string;
+                name: string;
+                type: string;
+            }[];
             stateMutability: string;
             type: string;
             anonymous?: undefined;
@@ -635,7 +746,7 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.json.ts" 
         })[];
         bytecode: string;
     };
-    export default _default_2;
+    export default _default_3;
 }
 /// <amd-module name="@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" />
 declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
@@ -707,21 +818,35 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
     export class ProxyV3 extends _Contract {
         static _abi: any;
         constructor(wallet: IWallet, address?: string);
-        deploy(options?: TransactionOptions): Promise<string>;
+        deploy(protocolRate: number | BigNumber, options?: TransactionOptions): Promise<string>;
         parseAddCommissionEvent(receipt: TransactionReceipt): ProxyV3.AddCommissionEvent[];
         decodeAddCommissionEvent(event: Event): ProxyV3.AddCommissionEvent;
+        parseAuthorizeEvent(receipt: TransactionReceipt): ProxyV3.AuthorizeEvent[];
+        decodeAuthorizeEvent(event: Event): ProxyV3.AuthorizeEvent;
         parseClaimEvent(receipt: TransactionReceipt): ProxyV3.ClaimEvent[];
         decodeClaimEvent(event: Event): ProxyV3.ClaimEvent;
+        parseClaimProtocolFeeEvent(receipt: TransactionReceipt): ProxyV3.ClaimProtocolFeeEvent[];
+        decodeClaimProtocolFeeEvent(event: Event): ProxyV3.ClaimProtocolFeeEvent;
+        parseDeauthorizeEvent(receipt: TransactionReceipt): ProxyV3.DeauthorizeEvent[];
+        decodeDeauthorizeEvent(event: Event): ProxyV3.DeauthorizeEvent;
         parseNewCampaignEvent(receipt: TransactionReceipt): ProxyV3.NewCampaignEvent[];
         decodeNewCampaignEvent(event: Event): ProxyV3.NewCampaignEvent;
         parseNewProjectEvent(receipt: TransactionReceipt): ProxyV3.NewProjectEvent[];
         decodeNewProjectEvent(event: Event): ProxyV3.NewProjectEvent;
+        parseSetProtocolRateEvent(receipt: TransactionReceipt): ProxyV3.SetProtocolRateEvent[];
+        decodeSetProtocolRateEvent(event: Event): ProxyV3.SetProtocolRateEvent;
         parseSkimEvent(receipt: TransactionReceipt): ProxyV3.SkimEvent[];
         decodeSkimEvent(event: Event): ProxyV3.SkimEvent;
+        parseStakeEvent(receipt: TransactionReceipt): ProxyV3.StakeEvent[];
+        decodeStakeEvent(event: Event): ProxyV3.StakeEvent;
+        parseStartOwnershipTransferEvent(receipt: TransactionReceipt): ProxyV3.StartOwnershipTransferEvent[];
+        decodeStartOwnershipTransferEvent(event: Event): ProxyV3.StartOwnershipTransferEvent;
         parseTransferBackEvent(receipt: TransactionReceipt): ProxyV3.TransferBackEvent[];
         decodeTransferBackEvent(event: Event): ProxyV3.TransferBackEvent;
         parseTransferForwardEvent(receipt: TransactionReceipt): ProxyV3.TransferForwardEvent[];
         decodeTransferForwardEvent(event: Event): ProxyV3.TransferForwardEvent;
+        parseTransferOwnershipEvent(receipt: TransactionReceipt): ProxyV3.TransferOwnershipEvent[];
+        decodeTransferOwnershipEvent(event: Event): ProxyV3.TransferOwnershipEvent;
         campaignAccumulatedCommission: {
             (params: ICampaignAccumulatedCommissionParams, options?: TransactionOptions): Promise<BigNumber>;
         };
@@ -735,6 +860,16 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
             call: (tokens: string[], options?: TransactionOptions) => Promise<void>;
             txData: (tokens: string[], options?: TransactionOptions) => Promise<string>;
         };
+        claimMultipleProtocolFee: {
+            (tokens: string[], options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (tokens: string[], options?: TransactionOptions) => Promise<void>;
+            txData: (tokens: string[], options?: TransactionOptions) => Promise<string>;
+        };
+        claimProtocolFee: {
+            (token: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (token: string, options?: TransactionOptions) => Promise<void>;
+            txData: (token: string, options?: TransactionOptions) => Promise<string>;
+        };
         claimantIdCount: {
             (options?: TransactionOptions): Promise<BigNumber>;
         };
@@ -747,6 +882,11 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
                 token: string;
                 balance: BigNumber;
             }>;
+        };
+        deny: {
+            (user: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (user: string, options?: TransactionOptions) => Promise<void>;
+            txData: (user: string, options?: TransactionOptions) => Promise<string>;
         };
         getCampaign: {
             (params: IGetCampaignParams, options?: TransactionOptions): Promise<{
@@ -813,6 +953,9 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
                 token: string;
                 balance: BigNumber;
             }[]>;
+        };
+        isPermitted: {
+            (param1: string, options?: TransactionOptions): Promise<boolean>;
         };
         lastBalance: {
             (param1: string, options?: TransactionOptions): Promise<BigNumber>;
@@ -888,18 +1031,40 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
                 referrers: string[];
             }, options?: TransactionOptions) => Promise<string>;
         };
+        newOwner: {
+            (options?: TransactionOptions): Promise<string>;
+        };
         newProject: {
             (admins: string[], options?: TransactionOptions): Promise<TransactionReceipt>;
             call: (admins: string[], options?: TransactionOptions) => Promise<BigNumber>;
             txData: (admins: string[], options?: TransactionOptions) => Promise<string>;
         };
+        owner: {
+            (options?: TransactionOptions): Promise<string>;
+        };
+        permit: {
+            (user: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (user: string, options?: TransactionOptions) => Promise<void>;
+            txData: (user: string, options?: TransactionOptions) => Promise<string>;
+        };
         projectBalance: {
             (params: IProjectBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
+        };
+        protocolFeeBalance: {
+            (param1: string, options?: TransactionOptions): Promise<BigNumber>;
+        };
+        protocolRate: {
+            (options?: TransactionOptions): Promise<BigNumber>;
         };
         proxyCall: {
             (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions): Promise<TransactionReceipt>;
             call: (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions) => Promise<void>;
             txData: (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions) => Promise<string>;
+        };
+        setProtocolRate: {
+            (newRate: number | BigNumber, options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (newRate: number | BigNumber, options?: TransactionOptions) => Promise<void>;
+            txData: (newRate: number | BigNumber, options?: TransactionOptions) => Promise<string>;
         };
         skim: {
             (tokens: string[], options?: TransactionOptions): Promise<TransactionReceipt>;
@@ -924,19 +1089,45 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
         stakesBalance: {
             (params: IStakesBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
         };
+        takeOwnership: {
+            (options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (options?: TransactionOptions) => Promise<void>;
+            txData: (options?: TransactionOptions) => Promise<string>;
+        };
+        transferOwnership: {
+            (newOwner: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (newOwner: string, options?: TransactionOptions) => Promise<void>;
+            txData: (newOwner: string, options?: TransactionOptions) => Promise<string>;
+        };
         private assign;
     }
     export module ProxyV3 {
         interface AddCommissionEvent {
             to: string;
             token: string;
-            amount: BigNumber;
+            commission: BigNumber;
+            commissionBalance: BigNumber;
+            protocolFee: BigNumber;
+            protocolFeeBalance: BigNumber;
+            _event: Event;
+        }
+        interface AuthorizeEvent {
+            user: string;
             _event: Event;
         }
         interface ClaimEvent {
             from: string;
             token: string;
             amount: BigNumber;
+            _event: Event;
+        }
+        interface ClaimProtocolFeeEvent {
+            token: string;
+            amount: BigNumber;
+            _event: Event;
+        }
+        interface DeauthorizeEvent {
+            user: string;
             _event: Event;
         }
         interface NewCampaignEvent {
@@ -947,10 +1138,25 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
             projectId: BigNumber;
             _event: Event;
         }
+        interface SetProtocolRateEvent {
+            protocolRate: BigNumber;
+            _event: Event;
+        }
         interface SkimEvent {
             token: string;
             to: string;
             amount: BigNumber;
+            _event: Event;
+        }
+        interface StakeEvent {
+            projectId: BigNumber;
+            token: string;
+            amount: BigNumber;
+            balance: BigNumber;
+            _event: Event;
+        }
+        interface StartOwnershipTransferEvent {
+            user: string;
             _event: Event;
         }
         interface TransferBackEvent {
@@ -967,10 +1173,15 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
             amount: BigNumber;
             _event: Event;
         }
+        interface TransferOwnershipEvent {
+            user: string;
+            _event: Event;
+        }
     }
 }
 /// <amd-module name="@scom/scom-commission-proxy-contract/contracts/index.ts" />
 declare module "@scom/scom-commission-proxy-contract/contracts/index.ts" {
+    export { Authorization } from "@scom/scom-commission-proxy-contract/contracts/Authorization.ts";
     export { Proxy } from "@scom/scom-commission-proxy-contract/contracts/Proxy.ts";
     export { ProxyV2 } from "@scom/scom-commission-proxy-contract/contracts/ProxyV2.ts";
     export { ProxyV3 } from "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts";
@@ -989,11 +1200,11 @@ declare module "@scom/scom-commission-proxy-contract" {
     export var DefaultDeployOptions: IDeployOptions;
     export function deploy(wallet: IWallet, options?: IDeployOptions): Promise<IDeployResult>;
     export function onProgress(handler: any): void;
-    const _default_3: {
+    const _default_4: {
         Contracts: typeof Contracts;
         deploy: typeof deploy;
         DefaultDeployOptions: IDeployOptions;
         onProgress: typeof onProgress;
     };
-    export default _default_3;
+    export default _default_4;
 }

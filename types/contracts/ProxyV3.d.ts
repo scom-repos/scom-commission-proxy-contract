@@ -66,21 +66,35 @@ export interface IStakesBalanceParams {
 export declare class ProxyV3 extends _Contract {
     static _abi: any;
     constructor(wallet: IWallet, address?: string);
-    deploy(options?: TransactionOptions): Promise<string>;
+    deploy(protocolRate: number | BigNumber, options?: TransactionOptions): Promise<string>;
     parseAddCommissionEvent(receipt: TransactionReceipt): ProxyV3.AddCommissionEvent[];
     decodeAddCommissionEvent(event: Event): ProxyV3.AddCommissionEvent;
+    parseAuthorizeEvent(receipt: TransactionReceipt): ProxyV3.AuthorizeEvent[];
+    decodeAuthorizeEvent(event: Event): ProxyV3.AuthorizeEvent;
     parseClaimEvent(receipt: TransactionReceipt): ProxyV3.ClaimEvent[];
     decodeClaimEvent(event: Event): ProxyV3.ClaimEvent;
+    parseClaimProtocolFeeEvent(receipt: TransactionReceipt): ProxyV3.ClaimProtocolFeeEvent[];
+    decodeClaimProtocolFeeEvent(event: Event): ProxyV3.ClaimProtocolFeeEvent;
+    parseDeauthorizeEvent(receipt: TransactionReceipt): ProxyV3.DeauthorizeEvent[];
+    decodeDeauthorizeEvent(event: Event): ProxyV3.DeauthorizeEvent;
     parseNewCampaignEvent(receipt: TransactionReceipt): ProxyV3.NewCampaignEvent[];
     decodeNewCampaignEvent(event: Event): ProxyV3.NewCampaignEvent;
     parseNewProjectEvent(receipt: TransactionReceipt): ProxyV3.NewProjectEvent[];
     decodeNewProjectEvent(event: Event): ProxyV3.NewProjectEvent;
+    parseSetProtocolRateEvent(receipt: TransactionReceipt): ProxyV3.SetProtocolRateEvent[];
+    decodeSetProtocolRateEvent(event: Event): ProxyV3.SetProtocolRateEvent;
     parseSkimEvent(receipt: TransactionReceipt): ProxyV3.SkimEvent[];
     decodeSkimEvent(event: Event): ProxyV3.SkimEvent;
+    parseStakeEvent(receipt: TransactionReceipt): ProxyV3.StakeEvent[];
+    decodeStakeEvent(event: Event): ProxyV3.StakeEvent;
+    parseStartOwnershipTransferEvent(receipt: TransactionReceipt): ProxyV3.StartOwnershipTransferEvent[];
+    decodeStartOwnershipTransferEvent(event: Event): ProxyV3.StartOwnershipTransferEvent;
     parseTransferBackEvent(receipt: TransactionReceipt): ProxyV3.TransferBackEvent[];
     decodeTransferBackEvent(event: Event): ProxyV3.TransferBackEvent;
     parseTransferForwardEvent(receipt: TransactionReceipt): ProxyV3.TransferForwardEvent[];
     decodeTransferForwardEvent(event: Event): ProxyV3.TransferForwardEvent;
+    parseTransferOwnershipEvent(receipt: TransactionReceipt): ProxyV3.TransferOwnershipEvent[];
+    decodeTransferOwnershipEvent(event: Event): ProxyV3.TransferOwnershipEvent;
     campaignAccumulatedCommission: {
         (params: ICampaignAccumulatedCommissionParams, options?: TransactionOptions): Promise<BigNumber>;
     };
@@ -94,6 +108,16 @@ export declare class ProxyV3 extends _Contract {
         call: (tokens: string[], options?: TransactionOptions) => Promise<void>;
         txData: (tokens: string[], options?: TransactionOptions) => Promise<string>;
     };
+    claimMultipleProtocolFee: {
+        (tokens: string[], options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (tokens: string[], options?: TransactionOptions) => Promise<void>;
+        txData: (tokens: string[], options?: TransactionOptions) => Promise<string>;
+    };
+    claimProtocolFee: {
+        (token: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (token: string, options?: TransactionOptions) => Promise<void>;
+        txData: (token: string, options?: TransactionOptions) => Promise<string>;
+    };
     claimantIdCount: {
         (options?: TransactionOptions): Promise<BigNumber>;
     };
@@ -106,6 +130,11 @@ export declare class ProxyV3 extends _Contract {
             token: string;
             balance: BigNumber;
         }>;
+    };
+    deny: {
+        (user: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (user: string, options?: TransactionOptions) => Promise<void>;
+        txData: (user: string, options?: TransactionOptions) => Promise<string>;
     };
     getCampaign: {
         (params: IGetCampaignParams, options?: TransactionOptions): Promise<{
@@ -172,6 +201,9 @@ export declare class ProxyV3 extends _Contract {
             token: string;
             balance: BigNumber;
         }[]>;
+    };
+    isPermitted: {
+        (param1: string, options?: TransactionOptions): Promise<boolean>;
     };
     lastBalance: {
         (param1: string, options?: TransactionOptions): Promise<BigNumber>;
@@ -247,18 +279,40 @@ export declare class ProxyV3 extends _Contract {
             referrers: string[];
         }, options?: TransactionOptions) => Promise<string>;
     };
+    newOwner: {
+        (options?: TransactionOptions): Promise<string>;
+    };
     newProject: {
         (admins: string[], options?: TransactionOptions): Promise<TransactionReceipt>;
         call: (admins: string[], options?: TransactionOptions) => Promise<BigNumber>;
         txData: (admins: string[], options?: TransactionOptions) => Promise<string>;
     };
+    owner: {
+        (options?: TransactionOptions): Promise<string>;
+    };
+    permit: {
+        (user: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (user: string, options?: TransactionOptions) => Promise<void>;
+        txData: (user: string, options?: TransactionOptions) => Promise<string>;
+    };
     projectBalance: {
         (params: IProjectBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
+    };
+    protocolFeeBalance: {
+        (param1: string, options?: TransactionOptions): Promise<BigNumber>;
+    };
+    protocolRate: {
+        (options?: TransactionOptions): Promise<BigNumber>;
     };
     proxyCall: {
         (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions): Promise<TransactionReceipt>;
         call: (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions) => Promise<void>;
         txData: (params: IProxyCallParams, options?: number | BigNumber | TransactionOptions) => Promise<string>;
+    };
+    setProtocolRate: {
+        (newRate: number | BigNumber, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (newRate: number | BigNumber, options?: TransactionOptions) => Promise<void>;
+        txData: (newRate: number | BigNumber, options?: TransactionOptions) => Promise<string>;
     };
     skim: {
         (tokens: string[], options?: TransactionOptions): Promise<TransactionReceipt>;
@@ -283,19 +337,45 @@ export declare class ProxyV3 extends _Contract {
     stakesBalance: {
         (params: IStakesBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
     };
+    takeOwnership: {
+        (options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (options?: TransactionOptions) => Promise<void>;
+        txData: (options?: TransactionOptions) => Promise<string>;
+    };
+    transferOwnership: {
+        (newOwner: string, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (newOwner: string, options?: TransactionOptions) => Promise<void>;
+        txData: (newOwner: string, options?: TransactionOptions) => Promise<string>;
+    };
     private assign;
 }
 export declare module ProxyV3 {
     interface AddCommissionEvent {
         to: string;
         token: string;
-        amount: BigNumber;
+        commission: BigNumber;
+        commissionBalance: BigNumber;
+        protocolFee: BigNumber;
+        protocolFeeBalance: BigNumber;
+        _event: Event;
+    }
+    interface AuthorizeEvent {
+        user: string;
         _event: Event;
     }
     interface ClaimEvent {
         from: string;
         token: string;
         amount: BigNumber;
+        _event: Event;
+    }
+    interface ClaimProtocolFeeEvent {
+        token: string;
+        amount: BigNumber;
+        _event: Event;
+    }
+    interface DeauthorizeEvent {
+        user: string;
         _event: Event;
     }
     interface NewCampaignEvent {
@@ -306,10 +386,25 @@ export declare module ProxyV3 {
         projectId: BigNumber;
         _event: Event;
     }
+    interface SetProtocolRateEvent {
+        protocolRate: BigNumber;
+        _event: Event;
+    }
     interface SkimEvent {
         token: string;
         to: string;
         amount: BigNumber;
+        _event: Event;
+    }
+    interface StakeEvent {
+        projectId: BigNumber;
+        token: string;
+        amount: BigNumber;
+        balance: BigNumber;
+        _event: Event;
+    }
+    interface StartOwnershipTransferEvent {
+        user: string;
         _event: Event;
     }
     interface TransferBackEvent {
@@ -324,6 +419,10 @@ export declare module ProxyV3 {
         token: string;
         sender: string;
         amount: BigNumber;
+        _event: Event;
+    }
+    interface TransferOwnershipEvent {
+        user: string;
         _event: Event;
     }
 }

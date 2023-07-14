@@ -527,6 +527,47 @@ library SafeERC20 {
         }
     }
 }
+
+pragma solidity 0.8.17;
+
+contract Authorization {
+    address public owner;
+    address public newOwner;
+    mapping(address => bool) public isPermitted;
+    event Authorize(address user);
+    event Deauthorize(address user);
+    event StartOwnershipTransfer(address user);
+    event TransferOwnership(address user);
+    constructor() {
+        owner = msg.sender;
+    }
+    modifier onlyOwner {
+        require(msg.sender == owner);
+        _;
+    }
+    modifier auth {
+        require(isPermitted[msg.sender], "Action performed by unauthorized address.");
+        _;
+    }
+    function transferOwnership(address newOwner_) external onlyOwner {
+        newOwner = newOwner_;
+        emit StartOwnershipTransfer(newOwner_);
+    }
+    function takeOwnership() external {
+        require(msg.sender == newOwner, "Action performed by unauthorized address.");
+        owner = newOwner;
+        newOwner = address(0);
+        emit TransferOwnership(owner);
+    }
+    function permit(address user) external onlyOwner {
+        isPermitted[user] = true;
+        emit Authorize(user);
+    }
+    function deny(address user) external onlyOwner {
+        isPermitted[user] = false;
+        emit Deauthorize(user);
+    }
+}
 // Commissions paid by projects
 
 
@@ -535,7 +576,8 @@ pragma solidity 0.8.17;
 
 
 
-contract ProxyV3 {
+
+contract ProxyV3 is Authorization {
     using SafeERC20 for IERC20;
 
     struct Project {
@@ -546,12 +588,12 @@ contract ProxyV3 {
 
     struct CommissionInTokenConfig {
         bool directTransfer;
-        uint256 rate;
+        uint24 rate;
         uint256 capPerTransaction;
         uint256 capPerCampaign;
     }
     struct CommissionOutTokenConfig {
-        uint256 rate;
+        uint24 rate;
         uint256 capPerTransaction;
         uint256 capPerCampaign;
     }
@@ -596,19 +638,27 @@ contract ProxyV3 {
     mapping(uint256 => mapping(IERC20 => uint256)) public stakesBalance;
     mapping(IERC20 => uint256) public lastBalance;
 
+    uint24 public protocolRate;
+    mapping(IERC20 => uint256) public protocolFeeBalance;
+
     uint256 public claimantIdCount;
     mapping(uint256 => ClaimantInfo) public claimantsInfo; //claimantsInfo[id] = ClaimantInfo
     mapping(address => mapping(IERC20 => uint256)) public claimantIds; //claimantIds[address][IERC20] = id
 
+    event SetProtocolRate(uint24 protocolRate);
     event NewProject(uint256 indexed projectId);
     event NewCampaign(uint256 indexed campaignId);
+    event Stake(uint256 indexed projectId, IERC20 indexed token, uint256 amount, uint256 balance);
     event TransferForward(address indexed target, IERC20 indexed token, address sender, uint256 amount);
     event TransferBack(address indexed target, IERC20 indexed token, address sender, uint256 amount);
-    event Claim(address indexed from, IERC20 token, uint256 amount);
-    event AddCommission(address to, IERC20 token, uint256 amount);
+    event Claim(address indexed from, IERC20 indexed token, uint256 amount);
+    event ClaimProtocolFee(IERC20 indexed token, uint256 amount);
+    event AddCommission(address to, IERC20 token, uint256 commission, uint256 commissionBalance, uint256 protocolFee, uint256 protocolFeeBalance);
     event Skim(IERC20 indexed token, address indexed to, uint256 amount);
 
-    constructor() {
+    constructor(uint24 _protocolRate) {
+        protocolRate = _protocolRate;
+        emit SetProtocolRate(_protocolRate);
     }
 
     function _transferAssetFrom(IERC20 token, uint256 amount) internal returns (uint256 balance) {
@@ -619,6 +669,11 @@ contract ProxyV3 {
     function _safeTransferETH(address to, uint value) internal {
         (bool success,) = to.call{value:value}(new bytes(0));
         require(success, 'TransferHelper: ETH_TRANSFER_FAILED');
+    }
+
+    function setProtocolRate(uint24 newRate) external {
+        protocolRate = newRate;
+        emit SetProtocolRate(newRate);
     }
 
     function newProject(address[] calldata admins) external returns (uint256 projectId) {
@@ -839,6 +894,10 @@ contract ProxyV3 {
     // }
 
     function addToDistributions(address claimant, IERC20 token, uint256 amount) internal {
+        uint256 protocolFee = amount * protocolRate / 1e6;
+        protocolFeeBalance[token] += protocolFee;
+        unchecked { amount = amount - protocolFee; }
+
         uint256 claimantId = claimantIds[claimant][token];
         if (claimantId == 0) {
             ++claimantIdCount;
@@ -852,7 +911,7 @@ contract ProxyV3 {
         else {
             claimantsInfo[claimantId].balance += amount;
         }
-        emit AddCommission(claimant, token, amount);
+        emit AddCommission(claimant, token, amount, claimantsInfo[claimantId].balance, protocolFee, protocolFeeBalance[token]);
     }
     function getClaimantBalance(address claimant, IERC20 token) external view returns (uint256) {
         uint256 claimantId = claimantIds[claimant][token];
@@ -907,7 +966,7 @@ contract ProxyV3 {
 
             // deduct from stakes
             if (tokenConfig.rate > 0) {
-                amount = amount * tokenConfig.rate / 1e18; // amount is commission from now on
+                amount = amount * tokenConfig.rate / 1e6; // amount is commission from now on
                 require(amount <= tokenConfig.capPerTransaction, "cap exceeded");
                 require(amount <= stakesBalance[campaign.projectId][token], "not enough commission");
                 unchecked { stakesBalance[campaign.projectId][token] -= amount; }
@@ -944,7 +1003,7 @@ contract ProxyV3 {
                 outToken.safeTransfer(to, amount);
             }
             if (tokenConfig.rate > 0) {
-                amount = amount * tokenConfig.rate / 1e18; // amount is commission from now on
+                amount = amount * tokenConfig.rate / 1e6; // amount is commission from now on
                 require(amount <= tokenConfig.capPerTransaction, "cap exceeded");
                 require(amount <= stakesBalance[campaign.projectId][outToken], "not enough commission");
                 unchecked { stakesBalance[campaign.projectId][outToken] -= amount; }
@@ -967,6 +1026,8 @@ contract ProxyV3 {
             amount = _transferAssetFrom(token, amount);
         stakesBalance[projectId][token] += amount;
         lastBalance[token] += amount;
+
+        emit Stake(projectId, token, amount, stakesBalance[projectId][token]);
     }
     function stake(uint256 projectId, IERC20 token, uint256 amount) external {
         _stake(projectId, token, amount);
@@ -1008,6 +1069,27 @@ contract ProxyV3 {
         uint256 length = tokens.length;
         for (uint256 i ; i < length ; i++) {
             _claim(tokens[i]);
+        }
+    }
+
+    function _claimProtocolFee(IERC20 token) internal {
+        uint256 balance = protocolFeeBalance[token];
+        protocolFeeBalance[token] = 0;
+        lastBalance[token] -= balance;
+        if (address(token) == address(0)) {
+            _safeTransferETH(msg.sender, balance);
+        } else {
+            token.safeTransfer(msg.sender, balance);
+        }
+        emit ClaimProtocolFee(token, balance);
+    }
+    function claimProtocolFee(IERC20 token) external onlyOwner {
+        _claimProtocolFee(token);
+    }
+    function claimMultipleProtocolFee(IERC20[] calldata tokens) external onlyOwner {
+        uint256 length = tokens.length;
+        for (uint256 i ; i < length ; i++) {
+            _claimProtocolFee(tokens[i]);
         }
     }
 

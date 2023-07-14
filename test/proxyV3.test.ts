@@ -1,5 +1,5 @@
 import 'mocha';
-import { getProvider, print } from './helper';
+import { getProvider, print, assertEqual } from './helper';
 import {stakeToVote, voteToPass, initHybridRouter, ammAddLiquidity, oracleAddLiquidity}  from './oswapHelper';
 
 import Config from './config';
@@ -158,7 +158,7 @@ describe('proxy', function () {
 
         wallet.defaultAccount = admin;
         proxy = new Contracts.ProxyV3(wallet);
-        await proxy.deploy();
+        await proxy.deploy(Utils.toDecimals("0.01", 6));
     });
 
     let projectId: number;
@@ -190,13 +190,13 @@ describe('proxy', function () {
             commissionInTokenConfig: [
                 {
                     directTransfer: false,
-                    rate: Utils.toDecimals("0.01"),
+                    rate: Utils.toDecimals("0.01", 6),
                     capPerTransaction: Utils.toDecimals(10, await busd.decimals),
                     capPerCampaign: Utils.toDecimals(1000, await busd.decimals)
                 },
                 {
                     directTransfer: false,
-                    rate: Utils.toDecimals("0.01"),
+                    rate: Utils.toDecimals("0.01", 6),
                     capPerTransaction: Utils.toDecimals("0.1"),
                     capPerCampaign: Utils.toDecimals(1)
                 }
@@ -228,8 +228,15 @@ describe('proxy', function () {
 
         wallet.defaultAccount = admin;
         await busd.approve({spender: proxy.address, amount:Utils.toDecimals(1000)});
-        await proxy.stake({projectId: projectId, token:busd.address, amount:Utils.toDecimals(1000)});
-        await proxy.stakeETH(projectId, Utils.toDecimals(10));
+        receipt = await proxy.stake({projectId: projectId, token:busd.address, amount:Utils.toDecimals(1000)});
+        proxy.parseStakeEvent(receipt);
+        receipt = await proxy.stakeETH(projectId, Utils.toDecimals(10));
+        proxy.parseStakeEvent(receipt);
+
+        let balance = await proxy.lastBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals(1000));
+        balance = await proxy.lastBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals(10));
     });
 
     it('token to token', async function () {
@@ -266,36 +273,38 @@ describe('proxy', function () {
 
         await busd.approve({ spender: proxy.address, amount: amountIn * 2 });
         let receipt = await proxy.proxyCall({ referrer, campaignId, target, tokensIn, to, tokensOut, data }, 0);
-        print(receipt);
+
         print(proxy.parseTransferForwardEvent(receipt));
         print(proxy.parseTransferBackEvent(receipt));
         print(proxy.parseAddCommissionEvent(receipt));
 
         let balance = await proxy.lastBalance(busd.address);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(1000).toFixed());
+        assertEqual(balance, Utils.toDecimals(1000));
         balance = await proxy.lastBalance(Utils.nullAddress);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
+        assertEqual(balance, Utils.toDecimals(10));
 
         balance = await cake.balanceOf(trader);
-        assert.strictEqual(balance.toFixed(), "83.326389467544371302");
-
+        assertEqual(balance, "83.326389467544371302");
 
         wallet.defaultAccount = referrer1;
         balance = await proxy.getClaimantBalance({
             claimant: referrer1,
             token: busd.address
         });
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
+        assertEqual(balance, Utils.toDecimals("9.9"));
+        balance = await proxy.protocolFeeBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals("0.1"));
 
-        await proxy.claim(busd.address);
+        receipt = await proxy.claim(busd.address);
+        print(proxy.parseClaimEvent(receipt));
+
         balance = await busd.balanceOf(referrer1);
-        assert.strictEqual(balance.toFixed(), "10");
+        assertEqual(balance, "9.9");
 
         balance = await proxy.lastBalance(busd.address);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(990).toFixed());
+        assertEqual(balance, Utils.toDecimals("990.1"));
         balance = await proxy.lastBalance(Utils.nullAddress);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
-
+        assertEqual(balance, Utils.toDecimals(10));
     });
 
     it('ETH to token', async function () {
@@ -334,7 +343,7 @@ describe('proxy', function () {
         print(proxy.parseAddCommissionEvent(receipt));
 
         let balance = await proxy.lastBalance(busd.address);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(990).toFixed()); // 1000 - 10
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals("990.1").toFixed()); // 1000 - 10
         balance = await proxy.lastBalance(Utils.nullAddress);
         assert.strictEqual(balance.toFixed(), Utils.toDecimals("10").toFixed());
 
@@ -346,127 +355,122 @@ describe('proxy', function () {
             claimant: referrer1,
             token: Utils.nullAddress
         });
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(0.1).toFixed());
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.099").toFixed());
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1);
-        assert.strictEqual(balance.toFixed(), "10000.09977184"); // 10000 + 0.1 - gas fee
+        assert.strictEqual(balance.toFixed(), "10000.098771512"); // 10000 + 0.099 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals(990).toFixed());
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals("990.1").toFixed());
         balance = await proxy.lastBalance(Utils.nullAddress);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("9.9").toFixed());
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals("9.901").toFixed());
     });
 
-    // it('token to ETH', async function () {
+    it('token to ETH', async function () {
 
-    //     let amountIn = 1000
-    //     let decimals = await busd.decimals;
-    //     let amountInWei = Utils.toDecimals(amountIn, decimals);
+        let amountIn = 1000
+        let decimals = await busd.decimals;
+        let amountInWei = Utils.toDecimals(amountIn, decimals);
 
-    //     wallet.defaultAccount = admin;
-    //     await busd.mint({ address: trader, amount: amountIn * 2 });
+        wallet.defaultAccount = admin;
+        await busd.mint({ address: trader, amount: amountIn * 2 });
 
-    //     wallet.defaultAccount = trader;
-    //     let now = parseInt((await wallet.getBlock()).timestamp.toString());
+        wallet.defaultAccount = trader;
+        let now = parseInt((await wallet.getBlock()).timestamp.toString());
 
-    //     let to = trader;
-    //     let tokensOut = [Utils.nullAddress];
-    //     let data = await oswapContracts.router.swapExactTokensForETH.txData({
-    //         amountIn: amountInWei,
-    //         amountOutMin: 0,
-    //         path: [busd.address, weth.address],
-    //         to: to, // trader
-    //         deadline: now + 1000
-    //     });
-    //     print(data);
+        let to = trader;
+        let tokensOut = [Utils.nullAddress];
+        let data = await oswapContracts.router.swapExactTokensForETH.txData({
+            amountIn: amountInWei,
+            amountOutMin: 0,
+            path: [busd.address, weth.address],
+            to: to, // trader
+            deadline: now + 1000
+        });
+        print(data);
 
-    //     let referrer = referrer1;
-    //     let target = oswapContracts.router.address;
-    //     let tokensIn = [
-    //         {
-    //             token: busd.address,
-    //             amount: Utils.toDecimals(amountIn + 10 + 15, decimals),
-    //             directTransfer: false,
-    //             commissions: [
-    //                 { to: referrer1, amount: Utils.toDecimals(10, decimals) },
-    //                 { to: referrer2, amount: Utils.toDecimals(15, decimals) }
-    //             ]
-    //         }
-    //     ];
+        let referrer = referrer1;
+        let target = oswapContracts.router.address;
+        let tokensIn = [
+            {
+                token: busd.address,
+                amount: Utils.toDecimals(amountIn, decimals)
+            }
+        ];
 
 
-    //     await busd.approve({ spender: proxy.address, amount: amountIn * 2 });
-    //     let receipt = await proxy.proxyCall({ referrer, campaignId, target, tokensIn, to, tokensOut, data }, 0);
-    //     print(receipt);
-    //     print(proxy.parseTransferForwardEvent(receipt));
-    //     print(proxy.parseTransferBackEvent(receipt));
-    //     print(proxy.parseAddCommissionEvent(receipt));
+        await busd.approve({ spender: proxy.address, amount: amountIn * 2 });
+        let receipt = await proxy.proxyCall({ referrer, campaignId, target, tokensIn, to, tokensOut, data }, 0);
+        print(receipt);
+        print(proxy.parseTransferForwardEvent(receipt));
+        print(proxy.parseTransferBackEvent(receipt));
+        print(proxy.parseAddCommissionEvent(receipt));
 
-    //     let balance = await proxy.lastBalance(busd.address);
-    //     assert.strictEqual(balance.toFixed(), Utils.toDecimals(40).toFixed());
-    //     balance = await proxy.lastBalance(Utils.nullAddress);
-    //     assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.15").toFixed());
+        let balance = await proxy.lastBalance(busd.address);
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals("990.1").toFixed());
+        balance = await proxy.lastBalance(Utils.nullAddress);
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals("9.901").toFixed());
 
-    //     balance = await wallet.balanceOf(trader);
-    //     assert.strictEqual(balance.toFixed(2), "9992.29"); // 10000 - 10 - 0.1 - 0.15 + (1000/400) - gas fee*3
+        balance = await wallet.balanceOf(trader);
 
-    //     wallet.defaultAccount = referrer1;
-    //     balance = await proxy.getClaimantBalance({
-    //         claimant: referrer1,
-    //         token: busd.address
-    //     });
-    //     assert.strictEqual(balance.toFixed(), Utils.toDecimals(10).toFixed());
+        assert.strictEqual(balance.toFixed(2), "9992.54"); // 10000 - 10 - 0.1 - 0.15 + (1000/400) - gas fee*3
 
-    //     await proxy.claim(busd.address);
-    //     balance = await busd.balanceOf(referrer1);
-    //     assert.strictEqual(balance.toFixed(), "20");
+        wallet.defaultAccount = referrer1;
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: busd.address
+        });
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals("9.9").toFixed());
 
-    //     balance = await proxy.lastBalance(busd.address);
-    //     assert.strictEqual(balance.toFixed(), Utils.toDecimals(30).toFixed());
-    //     balance = await proxy.lastBalance(Utils.nullAddress);
-    //     assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.15").toFixed());
-    // });
+        await proxy.claim(busd.address);
+        balance = await busd.balanceOf(referrer1);
+        assert.strictEqual(balance.toFixed(), "19.8");
 
+        balance = await proxy.lastBalance(busd.address);
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals("980.2").toFixed());
+        balance = await proxy.lastBalance(Utils.nullAddress);
+        assert.strictEqual(balance.toFixed(), Utils.toDecimals("9.901").toFixed());
+    });
 
-    // it('getClaimantsInfo', async function () {
-    //     const claimantIdCount = await proxy.claimantIdCount();
-    //     let list = await proxy.getClaimantsInfo({
-    //         fromId: 1,
-    //         count: claimantIdCount
-    //     });
-    //     assert.strictEqual(list.length, claimantIdCount.toNumber());
-    //     list = await proxy.getClaimantsInfo({
-    //         fromId: 1,
-    //         count: 10
-    //     });
-    //     assert.strictEqual(list.length, 4);
-    //     list = await proxy.getClaimantsInfo({
-    //         fromId: 2,
-    //         count: 5
-    //     });
-    //     assert.strictEqual(list.length, 3);
-    //     list = await proxy.getClaimantsInfo({
-    //         fromId: 1,
-    //         count: 2
-    //     });
-    //     assert.strictEqual(list.length, 2);
-    //     list = await proxy.getClaimantsInfo({
-    //         fromId: 2,
-    //         count: 2
-    //     });
-    //     assert.strictEqual(list.length, 2);
-    //     try {
-    //         list = await proxy.getClaimantsInfo({
-    //             fromId: 5,
-    //             count: 2
-    //         });
-    //         throw null;
-    //     }
-    //     catch (error) {
-    //         assert.strictEqual(error.message, 'VM Exception while processing transaction: revert out of bounds');
-    //     }
-    // });
+    it('getClaimantsInfo', async function () {
+        const claimantIdCount = await proxy.claimantIdCount();
+        let list = await proxy.getClaimantsInfo({
+            fromId: 1,
+            count: claimantIdCount
+        });
+        assert.strictEqual(list.length, claimantIdCount.toNumber());
+        list = await proxy.getClaimantsInfo({
+            fromId: 1,
+            count: 10
+        });
+        assert.strictEqual(list.length, 2);
+        list = await proxy.getClaimantsInfo({
+            fromId: 2,
+            count: 5
+        });
+        assert.strictEqual(list.length, 1);
+        list = await proxy.getClaimantsInfo({
+            fromId: 1,
+            count: 2
+        });
+        assert.strictEqual(list.length, 2);
+        list = await proxy.getClaimantsInfo({
+            fromId: 2,
+            count: 2
+        });
+        assert.strictEqual(list.length, 1);
+        try {
+            list = await proxy.getClaimantsInfo({
+                fromId: 5,
+                count: 2
+            });
+            throw null;
+        }
+        catch (error) {
+            assert.strictEqual(error.message, 'VM Exception while processing transaction: revert out of bounds');
+        }
+    });
     // it('Skim', async function () {
     //     wallet.defaultAccount = trader;
     //     await busd.approve({

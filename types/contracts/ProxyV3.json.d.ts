@@ -1,6 +1,10 @@
 declare const _default: {
     abi: ({
-        inputs: any[];
+        inputs: {
+            internalType: string;
+            name: string;
+            type: string;
+        }[];
         stateMutability: string;
         type: string;
         anonymous?: undefined;
