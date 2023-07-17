@@ -128,6 +128,13 @@ declare const _default: {
         stateMutability: string;
         type: string;
         anonymous?: undefined;
+    } | {
+        stateMutability: string;
+        type: string;
+        inputs?: undefined;
+        anonymous?: undefined;
+        name?: undefined;
+        outputs?: undefined;
     })[];
     bytecode: string;
 };

@@ -743,6 +743,13 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.json.ts" 
             stateMutability: string;
             type: string;
             anonymous?: undefined;
+        } | {
+            stateMutability: string;
+            type: string;
+            inputs?: undefined;
+            anonymous?: undefined;
+            name?: undefined;
+            outputs?: undefined;
         })[];
         bytecode: string;
     };

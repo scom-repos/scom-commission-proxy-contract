@@ -97,6 +97,8 @@ contract ProxyV3 is Authorization {
         emit SetProtocolRate(_protocolRate);
     }
 
+    receive() external payable {}
+
     function _transferAssetFrom(IERC20 token, uint256 amount) internal returns (uint256 balance) {
         balance = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), amount);
@@ -104,7 +106,7 @@ contract ProxyV3 is Authorization {
     }
     function _safeTransferETH(address to, uint value) internal {
         (bool success,) = to.call{value:value}(new bytes(0));
-        require(success, 'TransferHelper: ETH_TRANSFER_FAILED');
+        require(success, 'ETH_TRANSFER_FAILED');
     }
 
     function setProtocolRate(uint24 newRate) external {
@@ -488,15 +490,15 @@ contract ProxyV3 is Authorization {
         i = 0;
         while (i < length) {
             IERC20 outToken = tokensOut[i];
-            CommissionOutTokenConfig storage tokenConfig = campaign.commissionOutTokenConfig[outToken];
             uint256 amount;
             if (address(outToken) == address(0)) {
                 amount = address(this).balance - lastBalance[IERC20(address(0))];
                 _safeTransferETH(to, amount);
-            } else  {
+            } else {
                 amount = outToken.balanceOf(address(this)) - lastBalance[outToken];
                 outToken.safeTransfer(to, amount);
             }
+            CommissionOutTokenConfig storage tokenConfig = campaign.commissionOutTokenConfig[outToken];
             if (tokenConfig.rate > 0) {
                 amount = amount * tokenConfig.rate / 1e6; // amount is commission from now on
                 require(amount <= tokenConfig.capPerTransaction, "cap exceeded");
