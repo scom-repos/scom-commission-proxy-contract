@@ -502,13 +502,13 @@ describe('proxy', function () {
             commissionOutTokenConfig: [
                 {
                     rate: Utils.toDecimals("0.01", 6),
-                    feeOnProjectOwner: true,
+                    feeOnProjectOwner: false,
                     capPerTransaction: Utils.toDecimals(10, await busd.decimals),
                     capPerCampaign: Utils.toDecimals(1000, await busd.decimals)
                 },
                 {
                     rate: Utils.toDecimals("0.01", 6),
-                    feeOnProjectOwner: true,
+                    feeOnProjectOwner: false,
                     capPerTransaction: Utils.toDecimals("0.1"),
                     capPerCampaign: Utils.toDecimals(1)
                 }
@@ -586,11 +586,11 @@ describe('proxy', function () {
         assertEqual(balance, Utils.toDecimals("9.9"));
 
         balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:busd.address});
-        assertEqual(balance, Utils.toDecimals("10.1"));
+        assertEqual(balance, Utils.toDecimals("10"));
         balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:Utils.nullAddress});
         assertEqual(balance, Utils.toDecimals("0"));
         balance = await proxy.stakesBalance({param1: projectId, param2: busd.address});
-        assertEqual(balance, Utils.toDecimals("969.7")); // 979.8 - 10.1
+        assertEqual(balance, Utils.toDecimals("969.8")); // 979.8 - 10
         balance = await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress});
         assertEqual(balance, Utils.toDecimals("9.899"));
         balance = await proxy.protocolFeeBalance(busd.address);
@@ -606,7 +606,7 @@ describe('proxy', function () {
             claimant: referrer1,
             token: busd.address
         });
-        assertEqual(balance, Utils.toDecimals("10"));
+        assertEqual(balance, Utils.toDecimals("9.9"));
         balance = await proxy.getClaimantBalance({
             claimant: referrer1,
             token: Utils.nullAddress
@@ -615,10 +615,10 @@ describe('proxy', function () {
 
         await proxy.claim(busd.address);
         balance = await busd.balanceOf(referrer1);
-        assertEqual(balance, "30");
+        assertEqual(balance, "29.9");
 
         balance = await proxy.lastBalance(busd.address);
-        assertEqual(balance, Utils.toDecimals("970"));
+        assertEqual(balance, Utils.toDecimals("970.1"));
         balance = await proxy.lastBalance(Utils.nullAddress);
         assertEqual(balance, Utils.toDecimals("9.9"));
     });
@@ -663,18 +663,18 @@ describe('proxy', function () {
         print(proxy.parseAddCommissionEvent(receipt));
 
         let balance = await proxy.lastBalance(busd.address);
-        assertEqual(balance, Utils.toDecimals("970"));
+        assertEqual(balance, Utils.toDecimals("970.1"));
         balance = await proxy.lastBalance(Utils.nullAddress);
         assertEqual(balance, Utils.toDecimals("9.9"));
 
         balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:busd.address});
-        assertEqual(balance, Utils.toDecimals("10.1"));
+        assertEqual(balance, Utils.toDecimals("10"));
         balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:Utils.nullAddress});
-        assertEqual(balance, Utils.toDecimals("0.101"));
+        assertEqual(balance, Utils.toDecimals("0.1"));
         balance = await proxy.stakesBalance({param1: projectId, param2: busd.address});
-        assertEqual(balance, Utils.toDecimals("969.7"));
+        assertEqual(balance, Utils.toDecimals("969.8"));
         balance = await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress});
-        assertEqual(balance, Utils.toDecimals("9.798")); // 9.899 - 0.101
+        assertEqual(balance, Utils.toDecimals("9.799")); // 9.899 - 0.1
         balance = await proxy.protocolFeeBalance(busd.address);
         assertEqual(balance, Utils.toDecimals("0.3"));
         balance = await proxy.protocolFeeBalance(Utils.nullAddress);
@@ -688,16 +688,16 @@ describe('proxy', function () {
             claimant: referrer1,
             token: Utils.nullAddress
         });
-        assertEqual(balance, Utils.toDecimals("0.1")); // 1000/400*0.01
+        assertEqual(balance, Utils.toDecimals("0.099")); // 40000/4000*0.01 - 40000/4000*0.0001
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1);
-        assertEqual(balance, "10000.199466838"); // 10000.099 + 0.025 - gas fee
+        assertEqual(balance, "10000.198466838"); // 10000.099 + 0.025 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
-        assertEqual(balance, Utils.toDecimals("970"));
+        assertEqual(balance, Utils.toDecimals("970.1"));
         balance = await proxy.lastBalance(Utils.nullAddress);
-        assertEqual(balance, Utils.toDecimals("9.8"));
+        assertEqual(balance, Utils.toDecimals("9.801"));
     });
     });
 
