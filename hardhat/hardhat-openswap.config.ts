@@ -71,10 +71,10 @@ const config: HardhatUserConfig = {
       }
     },
     paths: {
-      root: "../packages/openswap",
+      root: "./openswap",
       sources: "./contracts/",
-      artifacts: "../../hardhat/artifacts",
-      cache: "../../hardhat/cache",
+      artifacts: "../artifacts",
+      cache: "../cache",
     }
   };
 
