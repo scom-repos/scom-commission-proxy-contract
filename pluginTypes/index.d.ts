@@ -796,12 +796,7 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
         fromId: number | BigNumber;
         count: number | BigNumber;
     }
-    export interface IProjectBalanceParams {
-        param1: number | BigNumber;
-        param2: string;
-    }
     export interface IProxyCallParams {
-        referrer: string;
         campaignId: number | BigNumber;
         target: string;
         tokensIn: {
@@ -810,6 +805,7 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
         }[];
         to: string;
         tokensOut: string[];
+        referrer: string;
         data: string;
     }
     export interface IRemoveProjectAdminParams {
@@ -929,16 +925,20 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
                 startDate: BigNumber;
                 endDate: BigNumber;
                 targetAndSelectors: string[];
+                acceptAnyInToken: boolean;
+                acceptAnyOutToken: boolean;
                 inTokens: string[];
+                directTransferInToken: boolean[];
                 commissionInTokenConfig: {
-                    directTransfer: boolean;
                     rate: BigNumber;
+                    feeOnProjectOwner: boolean;
                     capPerTransaction: BigNumber;
                     capPerCampaign: BigNumber;
                 }[];
                 outTokens: string[];
                 commissionOutTokenConfig: {
                     rate: BigNumber;
+                    feeOnProjectOwner: boolean;
                     capPerTransaction: BigNumber;
                     capPerCampaign: BigNumber;
                 }[];
@@ -954,15 +954,17 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
         getCampaignArrayData2: {
             (params: IGetCampaignArrayData2Params, options?: TransactionOptions): Promise<{
                 inTokens: string[];
+                directTransferInToken: boolean[];
                 commissionInTokenConfig: {
-                    directTransfer: boolean;
                     rate: BigNumber;
+                    feeOnProjectOwner: boolean;
                     capPerTransaction: BigNumber;
                     capPerCampaign: BigNumber;
                 }[];
                 outTokens: string[];
                 commissionOutTokenConfig: {
                     rate: BigNumber;
+                    feeOnProjectOwner: boolean;
                     capPerTransaction: BigNumber;
                     capPerCampaign: BigNumber;
                 }[];
@@ -1011,16 +1013,20 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
                 startDate: number | BigNumber;
                 endDate: number | BigNumber;
                 targetAndSelectors: string[];
+                acceptAnyInToken: boolean;
+                acceptAnyOutToken: boolean;
                 inTokens: string[];
+                directTransferInToken: boolean[];
                 commissionInTokenConfig: {
-                    directTransfer: boolean;
                     rate: number | BigNumber;
+                    feeOnProjectOwner: boolean;
                     capPerTransaction: number | BigNumber;
                     capPerCampaign: number | BigNumber;
                 }[];
                 outTokens: string[];
                 commissionOutTokenConfig: {
                     rate: number | BigNumber;
+                    feeOnProjectOwner: boolean;
                     capPerTransaction: number | BigNumber;
                     capPerCampaign: number | BigNumber;
                 }[];
@@ -1034,16 +1040,20 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
                 startDate: number | BigNumber;
                 endDate: number | BigNumber;
                 targetAndSelectors: string[];
+                acceptAnyInToken: boolean;
+                acceptAnyOutToken: boolean;
                 inTokens: string[];
+                directTransferInToken: boolean[];
                 commissionInTokenConfig: {
-                    directTransfer: boolean;
                     rate: number | BigNumber;
+                    feeOnProjectOwner: boolean;
                     capPerTransaction: number | BigNumber;
                     capPerCampaign: number | BigNumber;
                 }[];
                 outTokens: string[];
                 commissionOutTokenConfig: {
                     rate: number | BigNumber;
+                    feeOnProjectOwner: boolean;
                     capPerTransaction: number | BigNumber;
                     capPerCampaign: number | BigNumber;
                 }[];
@@ -1057,16 +1067,20 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
                 startDate: number | BigNumber;
                 endDate: number | BigNumber;
                 targetAndSelectors: string[];
+                acceptAnyInToken: boolean;
+                acceptAnyOutToken: boolean;
                 inTokens: string[];
+                directTransferInToken: boolean[];
                 commissionInTokenConfig: {
-                    directTransfer: boolean;
                     rate: number | BigNumber;
+                    feeOnProjectOwner: boolean;
                     capPerTransaction: number | BigNumber;
                     capPerCampaign: number | BigNumber;
                 }[];
                 outTokens: string[];
                 commissionOutTokenConfig: {
                     rate: number | BigNumber;
+                    feeOnProjectOwner: boolean;
                     capPerTransaction: number | BigNumber;
                     capPerCampaign: number | BigNumber;
                 }[];
@@ -1088,9 +1102,6 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
             (user: string, options?: TransactionOptions): Promise<TransactionReceipt>;
             call: (user: string, options?: TransactionOptions) => Promise<void>;
             txData: (user: string, options?: TransactionOptions) => Promise<string>;
-        };
-        projectBalance: {
-            (params: IProjectBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
         };
         protocolFeeBalance: {
             (param1: string, options?: TransactionOptions): Promise<BigNumber>;

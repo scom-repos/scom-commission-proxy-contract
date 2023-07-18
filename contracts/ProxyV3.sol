@@ -18,14 +18,9 @@ contract ProxyV3 is Authorization {
         mapping(address => uint256) projectAdminInv;
     }
 
-    struct CommissionInTokenConfig {
-        bool directTransfer;
+    struct CommissionTokenConfig {
         uint24 rate;
-        uint256 capPerTransaction;
-        uint256 capPerCampaign;
-    }
-    struct CommissionOutTokenConfig {
-        uint24 rate;
+        bool feeOnProjectOwner;
         uint256 capPerTransaction;
         uint256 capPerCampaign;
     }
@@ -39,10 +34,13 @@ contract ProxyV3 is Authorization {
         bytes24[] targetAndSelectors;
         mapping(bytes24 => bool) isTargetAndSelector;
         // token == 0 for native toekn
+        bool acceptAnyInToken;
+        bool acceptAnyOutToken;
         IERC20[] inTokens;
         IERC20[] outTokens;
-        mapping(IERC20 => CommissionInTokenConfig) commissionInTokenConfig;
-        mapping(IERC20 => CommissionOutTokenConfig) commissionOutTokenConfig;
+        mapping(IERC20 => bool) directTransferInToken;
+        mapping(IERC20 => CommissionTokenConfig) commissionInTokenConfig;
+        mapping(IERC20 => CommissionTokenConfig) commissionOutTokenConfig;
         address[] referrers;
         mapping(address => uint256) referrersInv;
     }
@@ -61,18 +59,19 @@ contract ProxyV3 is Authorization {
         uint256 balance;
     }
 
-
-    Project[] private projects;
-    Campaign[] private campaigns;
-    mapping(uint256 => mapping(IERC20 => uint256)) public projectBalance; // projectBalance[projectId][token] = balance
-    mapping(uint256 => uint256[]) projectCampaignId; // projectCampaignId[projectId][idx] = campaignId
-    mapping(uint256 => mapping(IERC20 => uint256)) public campaignAccumulatedCommission; // campaignAccumulatedCommission[campaignId][token] = commission
-    mapping(uint256 => mapping(IERC20 => uint256)) public stakesBalance; // stakesBalance[projectId][token]
-    mapping(IERC20 => uint256) public lastBalance;
-
+    // protocol data
     uint24 public protocolRate;
     mapping(IERC20 => uint256) public protocolFeeBalance;
+    mapping(IERC20 => uint256) public lastBalance;
 
+    // project / campaign data
+    Project[] private projects;
+    Campaign[] private campaigns;
+    mapping(uint256 => uint256[]) projectCampaignId; // projectCampaignId[projectId][idx] = campaignId
+    mapping(uint256 => mapping(IERC20 => uint256)) public stakesBalance; // stakesBalance[projectId][token]
+    mapping(uint256 => mapping(IERC20 => uint256)) public campaignAccumulatedCommission; // campaignAccumulatedCommission[campaignId][token] = commission
+
+    // claimant data
     uint256 public claimantIdCount;
     mapping(uint256 => ClaimantInfo) public claimantsInfo; //claimantsInfo[id] = ClaimantInfo
     mapping(address => mapping(IERC20 => uint256)) public claimantIds; //claimantIds[address][IERC20] = id
@@ -198,10 +197,13 @@ contract ProxyV3 is Authorization {
         uint64 startDate;
         uint64 endDate;
         bytes24[] targetAndSelectors;
+        bool acceptAnyInToken;
+        bool acceptAnyOutToken;
         IERC20[] inTokens;
-        CommissionInTokenConfig[] commissionInTokenConfig;
+        bool[] directTransferInToken;
+        CommissionTokenConfig[] commissionInTokenConfig;
         IERC20[] outTokens;
-        CommissionOutTokenConfig[] commissionOutTokenConfig;
+        CommissionTokenConfig[] commissionOutTokenConfig;
         address[] referrers;
     }
     function newCampaign(CampaignParams calldata params) external returns (uint256 campaignId) {
@@ -230,11 +232,15 @@ contract ProxyV3 is Authorization {
             unchecked { i++; }
         }
 
+        campaign.acceptAnyInToken = params.acceptAnyInToken;
+        campaign.acceptAnyOutToken = params.acceptAnyOutToken;
+
         i = 0;
         length = params.inTokens.length;
-        require(length == params.commissionInTokenConfig.length, "in token config length not matched");
+        require(length == params.directTransferInToken.length && length == params.commissionInTokenConfig.length, "in token config length not matched");
         campaign.inTokens = params.inTokens;
         while (i < length) {
+            campaign.directTransferInToken[params.inTokens[i]] = params.directTransferInToken[i];
             campaign.commissionInTokenConfig[params.inTokens[i]] = params.commissionInTokenConfig[i];
             unchecked { i++; }
         }
@@ -266,20 +272,25 @@ contract ProxyV3 is Authorization {
         campaign.referrersRequireApproval = _campaign.referrersRequireApproval;
         campaign.startDate = _campaign.startDate;
         campaign.endDate = _campaign.endDate;
+        campaign.acceptAnyInToken = _campaign.acceptAnyInToken;
+        campaign.acceptAnyOutToken = _campaign.acceptAnyOutToken;
+
         if (returnArrays) {
             campaign.targetAndSelectors = _campaign.targetAndSelectors;
             uint256 i;
             uint256 length = _campaign.inTokens.length;
             campaign.inTokens = _campaign.inTokens;
-            campaign.commissionInTokenConfig = new CommissionInTokenConfig[](length);
+            campaign.directTransferInToken = new bool[](length);
+            campaign.commissionInTokenConfig = new CommissionTokenConfig[](length);
             while (i < length) {
+                campaign.directTransferInToken[i] = _campaign.directTransferInToken[_campaign.inTokens[i]];
                 campaign.commissionInTokenConfig[i] = _campaign.commissionInTokenConfig[_campaign.inTokens[i]];
                 unchecked { i++; }
             }
             i = 0;
             length = _campaign.outTokens.length;
             campaign.outTokens = _campaign.outTokens;
-            campaign.commissionOutTokenConfig = new CommissionOutTokenConfig[](length);
+            campaign.commissionOutTokenConfig = new CommissionTokenConfig[](length);
             while (i < length) {
                 campaign.commissionOutTokenConfig[i] = _campaign.commissionOutTokenConfig[_campaign.outTokens[i]];
                 unchecked { i++; }
@@ -332,9 +343,10 @@ contract ProxyV3 is Authorization {
         uint256 outTokensStart, uint256 outTokensLength
     ) external view returns (
         IERC20[] memory inTokens,
-        CommissionInTokenConfig[] memory commissionInTokenConfig,
+        bool[] memory directTransferInToken,
+        CommissionTokenConfig[] memory commissionInTokenConfig,
         IERC20[] memory outTokens,
-        CommissionOutTokenConfig[] memory commissionOutTokenConfig
+        CommissionTokenConfig[] memory commissionOutTokenConfig
     ) {
         Campaign storage _campaign = campaigns[campaignId];
         uint256 i;
@@ -344,9 +356,11 @@ contract ProxyV3 is Authorization {
         if (inTokensStart + inTokensLength > _campaign.inTokens.length)
             inTokensLength = _campaign.inTokens.length - inTokensStart;
         inTokens = new IERC20[](inTokensLength);
-        commissionInTokenConfig = new CommissionInTokenConfig[](inTokensLength);
+        directTransferInToken = new bool[](inTokensLength);
+        commissionInTokenConfig = new CommissionTokenConfig[](inTokensLength);
         while (i < inTokensLength) {
             inTokens[i] = _campaign.inTokens[i + inTokensStart];
+            directTransferInToken[i] = _campaign.directTransferInToken[inTokens[i]];
             commissionInTokenConfig[i] = _campaign.commissionInTokenConfig[inTokens[i]];
             unchecked { i++; }
         }
@@ -357,7 +371,7 @@ contract ProxyV3 is Authorization {
         if (outTokensStart + outTokensLength > _campaign.outTokens.length)
             outTokensLength = _campaign.outTokens.length - outTokensStart;
         outTokens = new IERC20[](outTokensLength);
-        commissionOutTokenConfig = new CommissionOutTokenConfig[](outTokensLength);
+        commissionOutTokenConfig = new CommissionTokenConfig[](outTokensLength);
         while (i < outTokensLength) {
             outTokens[i] = _campaign.outTokens[i + outTokensStart];
             commissionOutTokenConfig[i] = _campaign.commissionOutTokenConfig[outTokens[i]];
@@ -390,10 +404,27 @@ contract ProxyV3 is Authorization {
     //     delete validReferrer[id][referrer];
     // }
 
-    function addToDistributions(address claimant, IERC20 token, uint256 amount) internal {
+    function addToDistributions(Campaign storage campaign, uint256 campaignId, CommissionTokenConfig storage tokenConfig, address claimant, IERC20 token, uint256 amount) internal {
+        uint256 projectId = campaign.projectId;
+        amount = amount * tokenConfig.rate / 1e6; // amount is commission from now on
+        require(amount <= tokenConfig.capPerTransaction, "cap exceeded");
         uint256 protocolFee = amount * protocolRate / 1e6;
         protocolFeeBalance[token] += protocolFee;
-        unchecked { amount = amount - protocolFee; }
+
+        uint256 claimantAmount;
+        uint256 projectOwnerAmount;
+        if (tokenConfig.feeOnProjectOwner){
+            claimantAmount = amount;
+            projectOwnerAmount = amount + protocolFee;
+        } else {
+            claimantAmount = amount - protocolFee;
+            projectOwnerAmount = amount;
+        }
+
+        require(projectOwnerAmount <= stakesBalance[projectId][token], "not enough commission");
+        unchecked { stakesBalance[projectId][token] -= projectOwnerAmount; }
+        campaignAccumulatedCommission[campaignId][token] += projectOwnerAmount;
+        require(campaignAccumulatedCommission[campaignId][token] <= tokenConfig.capPerCampaign, "accumulated commission exceeded limit");
 
         uint256 claimantId = claimantIds[claimant][token];
         if (claimantId == 0) {
@@ -401,14 +432,14 @@ contract ProxyV3 is Authorization {
             claimantsInfo[claimantIdCount] = ClaimantInfo({
                 claimant: claimant,
                 token: token,
-                balance: amount
+                balance: claimantAmount
             });
             claimantIds[claimant][token] = claimantIdCount;
         }
         else {
-            claimantsInfo[claimantId].balance += amount;
+            claimantsInfo[claimantId].balance += claimantAmount;
         }
-        emit AddCommission(claimant, token, amount, claimantsInfo[claimantId].balance, protocolFee, protocolFeeBalance[token]);
+        emit AddCommission(claimant, token, claimantAmount, claimantsInfo[claimantId].balance, protocolFee, protocolFeeBalance[token]);
     }
     function getClaimantBalance(address claimant, IERC20 token) external view returns (uint256) {
         uint256 claimantId = claimantIds[claimant][token];
@@ -428,7 +459,7 @@ contract ProxyV3 is Authorization {
         }
     }
 
-    function proxyCall(address referrer, uint256 campaignId, address target, TokensIn[] memory tokensIn, address to, IERC20[] memory tokensOut, bytes memory data) payable external {
+    function proxyCall(uint256 campaignId, address target, TokensIn[] memory tokensIn, address to, IERC20[] memory tokensOut, address referrer, bytes memory data) payable external {
         require(campaignId < campaigns.length, "invalid campaign");
         Campaign storage campaign = campaigns[campaignId];
         require(campaign.isTargetAndSelector[bytes24(abi.encodePacked(target,bytes4(data)))], "selector not matched");
@@ -442,34 +473,31 @@ contract ProxyV3 is Authorization {
         uint256 i;
 
         while (i < length){
-            IERC20 token = tokensIn[i].token;
+            IERC20 inToken = tokensIn[i].token;
+            CommissionTokenConfig storage tokenConfig = campaign.commissionInTokenConfig[inToken];
+            if (!campaign.acceptAnyInToken){
+                require(tokenConfig.rate > 0 || tokenConfig.feeOnProjectOwner, "not an accepted tokens");
+            }
             uint256 amount = tokensIn[i].amount;
-            CommissionInTokenConfig storage tokenConfig = campaign.commissionInTokenConfig[token];
-            if (address(token) == address(0)) {
+            if (address(inToken) == address(0)) {
                 require(ethAmount == 0, "more than one ETH transfer");
                 require(msg.value == amount, "ETH amount not matched");
                 ethAmount = amount;
             } else {
-                if (tokenConfig.directTransfer) {
-                    token.safeTransferFrom(msg.sender, target, amount);
+                if (campaign.directTransferInToken[inToken]) {
+                    inToken.safeTransferFrom(msg.sender, target, amount);
                 } else {
-                    amount = _transferAssetFrom(token, amount);
+                    amount = _transferAssetFrom(inToken, amount);
                     // require(amount == tokensIn[i].amount, "amount not matched");
-                    token.safeApprove(target, 0);
-                    token.safeApprove(target, amount);
+                    inToken.safeApprove(target, 0);
+                    inToken.safeApprove(target, amount);
                 }
             }
-            emit TransferForward(target, token, msg.sender, amount);
+            emit TransferForward(target, inToken, msg.sender, amount);
 
             // deduct from stakes
             if (tokenConfig.rate > 0) {
-                amount = amount * tokenConfig.rate / 1e6; // amount is commission from now on
-                require(amount <= tokenConfig.capPerTransaction, "cap exceeded");
-                require(amount <= stakesBalance[campaign.projectId][token], "not enough commission");
-                unchecked { stakesBalance[campaign.projectId][token] -= amount; }
-                campaignAccumulatedCommission[campaignId][token] += amount;
-                require(campaignAccumulatedCommission[campaignId][token] <= tokenConfig.capPerCampaign, "accumulated commission exceeded limit");
-                addToDistributions(referrer, token, amount); 
+                addToDistributions(campaign, campaignId, tokenConfig, referrer, inToken, amount); 
             }
 
             unchecked { i++; }
@@ -490,6 +518,10 @@ contract ProxyV3 is Authorization {
         i = 0;
         while (i < length) {
             IERC20 outToken = tokensOut[i];
+            CommissionTokenConfig storage tokenConfig = campaign.commissionOutTokenConfig[outToken];
+            if (!campaign.acceptAnyInToken){
+                require(tokenConfig.rate > 0 || tokenConfig.feeOnProjectOwner, "not an accepted tokens");
+            }
             uint256 amount;
             if (address(outToken) == address(0)) {
                 amount = address(this).balance - lastBalance[IERC20(address(0))];
@@ -498,15 +530,8 @@ contract ProxyV3 is Authorization {
                 amount = outToken.balanceOf(address(this)) - lastBalance[outToken];
                 outToken.safeTransfer(to, amount);
             }
-            CommissionOutTokenConfig storage tokenConfig = campaign.commissionOutTokenConfig[outToken];
             if (tokenConfig.rate > 0) {
-                amount = amount * tokenConfig.rate / 1e6; // amount is commission from now on
-                require(amount <= tokenConfig.capPerTransaction, "cap exceeded");
-                require(amount <= stakesBalance[campaign.projectId][outToken], "not enough commission");
-                unchecked { stakesBalance[campaign.projectId][outToken] -= amount; }
-                campaignAccumulatedCommission[campaignId][outToken] += amount;
-                require(campaignAccumulatedCommission[campaignId][outToken] <= tokenConfig.capPerCampaign, "accumulated commission exceeded limit");
-                addToDistributions(referrer, outToken, amount); 
+                addToDistributions(campaign, campaignId, tokenConfig, referrer, outToken, amount); 
             }
             emit TransferBack(target, outToken, to, amount);
             unchecked { i++; }

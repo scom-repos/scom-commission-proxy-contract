@@ -37,12 +37,7 @@ export interface IGetClaimantsInfoParams {
     fromId: number | BigNumber;
     count: number | BigNumber;
 }
-export interface IProjectBalanceParams {
-    param1: number | BigNumber;
-    param2: string;
-}
 export interface IProxyCallParams {
-    referrer: string;
     campaignId: number | BigNumber;
     target: string;
     tokensIn: {
@@ -51,6 +46,7 @@ export interface IProxyCallParams {
     }[];
     to: string;
     tokensOut: string[];
+    referrer: string;
     data: string;
 }
 export interface IRemoveProjectAdminParams {
@@ -170,16 +166,20 @@ export declare class ProxyV3 extends _Contract {
             startDate: BigNumber;
             endDate: BigNumber;
             targetAndSelectors: string[];
+            acceptAnyInToken: boolean;
+            acceptAnyOutToken: boolean;
             inTokens: string[];
+            directTransferInToken: boolean[];
             commissionInTokenConfig: {
-                directTransfer: boolean;
                 rate: BigNumber;
+                feeOnProjectOwner: boolean;
                 capPerTransaction: BigNumber;
                 capPerCampaign: BigNumber;
             }[];
             outTokens: string[];
             commissionOutTokenConfig: {
                 rate: BigNumber;
+                feeOnProjectOwner: boolean;
                 capPerTransaction: BigNumber;
                 capPerCampaign: BigNumber;
             }[];
@@ -195,15 +195,17 @@ export declare class ProxyV3 extends _Contract {
     getCampaignArrayData2: {
         (params: IGetCampaignArrayData2Params, options?: TransactionOptions): Promise<{
             inTokens: string[];
+            directTransferInToken: boolean[];
             commissionInTokenConfig: {
-                directTransfer: boolean;
                 rate: BigNumber;
+                feeOnProjectOwner: boolean;
                 capPerTransaction: BigNumber;
                 capPerCampaign: BigNumber;
             }[];
             outTokens: string[];
             commissionOutTokenConfig: {
                 rate: BigNumber;
+                feeOnProjectOwner: boolean;
                 capPerTransaction: BigNumber;
                 capPerCampaign: BigNumber;
             }[];
@@ -252,16 +254,20 @@ export declare class ProxyV3 extends _Contract {
             startDate: number | BigNumber;
             endDate: number | BigNumber;
             targetAndSelectors: string[];
+            acceptAnyInToken: boolean;
+            acceptAnyOutToken: boolean;
             inTokens: string[];
+            directTransferInToken: boolean[];
             commissionInTokenConfig: {
-                directTransfer: boolean;
                 rate: number | BigNumber;
+                feeOnProjectOwner: boolean;
                 capPerTransaction: number | BigNumber;
                 capPerCampaign: number | BigNumber;
             }[];
             outTokens: string[];
             commissionOutTokenConfig: {
                 rate: number | BigNumber;
+                feeOnProjectOwner: boolean;
                 capPerTransaction: number | BigNumber;
                 capPerCampaign: number | BigNumber;
             }[];
@@ -275,16 +281,20 @@ export declare class ProxyV3 extends _Contract {
             startDate: number | BigNumber;
             endDate: number | BigNumber;
             targetAndSelectors: string[];
+            acceptAnyInToken: boolean;
+            acceptAnyOutToken: boolean;
             inTokens: string[];
+            directTransferInToken: boolean[];
             commissionInTokenConfig: {
-                directTransfer: boolean;
                 rate: number | BigNumber;
+                feeOnProjectOwner: boolean;
                 capPerTransaction: number | BigNumber;
                 capPerCampaign: number | BigNumber;
             }[];
             outTokens: string[];
             commissionOutTokenConfig: {
                 rate: number | BigNumber;
+                feeOnProjectOwner: boolean;
                 capPerTransaction: number | BigNumber;
                 capPerCampaign: number | BigNumber;
             }[];
@@ -298,16 +308,20 @@ export declare class ProxyV3 extends _Contract {
             startDate: number | BigNumber;
             endDate: number | BigNumber;
             targetAndSelectors: string[];
+            acceptAnyInToken: boolean;
+            acceptAnyOutToken: boolean;
             inTokens: string[];
+            directTransferInToken: boolean[];
             commissionInTokenConfig: {
-                directTransfer: boolean;
                 rate: number | BigNumber;
+                feeOnProjectOwner: boolean;
                 capPerTransaction: number | BigNumber;
                 capPerCampaign: number | BigNumber;
             }[];
             outTokens: string[];
             commissionOutTokenConfig: {
                 rate: number | BigNumber;
+                feeOnProjectOwner: boolean;
                 capPerTransaction: number | BigNumber;
                 capPerCampaign: number | BigNumber;
             }[];
@@ -329,9 +343,6 @@ export declare class ProxyV3 extends _Contract {
         (user: string, options?: TransactionOptions): Promise<TransactionReceipt>;
         call: (user: string, options?: TransactionOptions) => Promise<void>;
         txData: (user: string, options?: TransactionOptions) => Promise<string>;
-    };
-    projectBalance: {
-        (params: IProjectBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
     };
     protocolFeeBalance: {
         (param1: string, options?: TransactionOptions): Promise<BigNumber>;

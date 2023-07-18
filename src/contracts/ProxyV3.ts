@@ -8,8 +8,7 @@ export interface IGetCampaignArrayData1Params {campaignId:number|BigNumber;targe
 export interface IGetCampaignArrayData2Params {campaignId:number|BigNumber;inTokensStart:number|BigNumber;inTokensLength:number|BigNumber;outTokensStart:number|BigNumber;outTokensLength:number|BigNumber}
 export interface IGetClaimantBalanceParams {claimant:string;token:string}
 export interface IGetClaimantsInfoParams {fromId:number|BigNumber;count:number|BigNumber}
-export interface IProjectBalanceParams {param1:number|BigNumber;param2:string}
-export interface IProxyCallParams {referrer:string;campaignId:number|BigNumber;target:string;tokensIn:{token:string,amount:number|BigNumber}[];to:string;tokensOut:string[];data:string}
+export interface IProxyCallParams {campaignId:number|BigNumber;target:string;tokensIn:{token:string,amount:number|BigNumber}[];to:string;tokensOut:string[];referrer:string;data:string}
 export interface IRemoveProjectAdminParams {projectId:number|BigNumber;admin:string}
 export interface IStakeParams {projectId:number|BigNumber;token:string;amount:number|BigNumber}
 export interface IStakeMultipleParams {projectId:number|BigNumber;token:string[];amount:(number|BigNumber)[]}
@@ -270,13 +269,13 @@ export class ProxyV3 extends _Contract{
         txData: (user:string, options?: TransactionOptions) => Promise<string>;
     }
     getCampaign: {
-        (params: IGetCampaignParams, options?: TransactionOptions): Promise<{projectId:BigNumber,maxInputTokensInEachCall:BigNumber,maxOutputTokensInEachCall:BigNumber,referrersRequireApproval:boolean,startDate:BigNumber,endDate:BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:BigNumber,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:BigNumber,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],referrers:string[]}>;
+        (params: IGetCampaignParams, options?: TransactionOptions): Promise<{projectId:BigNumber,maxInputTokensInEachCall:BigNumber,maxOutputTokensInEachCall:BigNumber,referrersRequireApproval:boolean,startDate:BigNumber,endDate:BigNumber,targetAndSelectors:string[],acceptAnyInToken:boolean,acceptAnyOutToken:boolean,inTokens:string[],directTransferInToken:boolean[],commissionInTokenConfig:{rate:BigNumber,feeOnProjectOwner:boolean,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:BigNumber,feeOnProjectOwner:boolean,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],referrers:string[]}>;
     }
     getCampaignArrayData1: {
         (params: IGetCampaignArrayData1Params, options?: TransactionOptions): Promise<{targetAndSelectors:string[],referrers:string[]}>;
     }
     getCampaignArrayData2: {
-        (params: IGetCampaignArrayData2Params, options?: TransactionOptions): Promise<{inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:BigNumber,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:BigNumber,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[]}>;
+        (params: IGetCampaignArrayData2Params, options?: TransactionOptions): Promise<{inTokens:string[],directTransferInToken:boolean[],commissionInTokenConfig:{rate:BigNumber,feeOnProjectOwner:boolean,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:BigNumber,feeOnProjectOwner:boolean,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[]}>;
     }
     getCampaignArrayLength: {
         (campaignId:number|BigNumber, options?: TransactionOptions): Promise<{targetAndSelectorsLength:BigNumber,inTokensLength:BigNumber,outTokensLength:BigNumber,referrersLength:BigNumber}>;
@@ -300,9 +299,9 @@ export class ProxyV3 extends _Contract{
         (param1:string, options?: TransactionOptions): Promise<BigNumber>;
     }
     newCampaign: {
-        (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions): Promise<TransactionReceipt>;
-        call: (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions) => Promise<BigNumber>;
-        txData: (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions) => Promise<string>;
+        (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],acceptAnyInToken:boolean,acceptAnyOutToken:boolean,inTokens:string[],directTransferInToken:boolean[],commissionInTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],acceptAnyInToken:boolean,acceptAnyOutToken:boolean,inTokens:string[],directTransferInToken:boolean[],commissionInTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions) => Promise<BigNumber>;
+        txData: (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],acceptAnyInToken:boolean,acceptAnyOutToken:boolean,inTokens:string[],directTransferInToken:boolean[],commissionInTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions) => Promise<string>;
     }
     newOwner: {
         (options?: TransactionOptions): Promise<string>;
@@ -319,9 +318,6 @@ export class ProxyV3 extends _Contract{
         (user:string, options?: TransactionOptions): Promise<TransactionReceipt>;
         call: (user:string, options?: TransactionOptions) => Promise<void>;
         txData: (user:string, options?: TransactionOptions) => Promise<string>;
-    }
-    projectBalance: {
-        (params: IProjectBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
     }
     protocolFeeBalance: {
         (param1:string, options?: TransactionOptions): Promise<BigNumber>;
@@ -415,7 +411,7 @@ export class ProxyV3 extends _Contract{
         }
         this.claimantsInfo = claimantsInfo_call
         let getCampaignParams = (params: IGetCampaignParams) => [this.wallet.utils.toString(params.campaignId),params.returnArrays];
-        let getCampaign_call = async (params: IGetCampaignParams, options?: TransactionOptions): Promise<{projectId:BigNumber,maxInputTokensInEachCall:BigNumber,maxOutputTokensInEachCall:BigNumber,referrersRequireApproval:boolean,startDate:BigNumber,endDate:BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:BigNumber,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:BigNumber,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],referrers:string[]}> => {
+        let getCampaign_call = async (params: IGetCampaignParams, options?: TransactionOptions): Promise<{projectId:BigNumber,maxInputTokensInEachCall:BigNumber,maxOutputTokensInEachCall:BigNumber,referrersRequireApproval:boolean,startDate:BigNumber,endDate:BigNumber,targetAndSelectors:string[],acceptAnyInToken:boolean,acceptAnyOutToken:boolean,inTokens:string[],directTransferInToken:boolean[],commissionInTokenConfig:{rate:BigNumber,feeOnProjectOwner:boolean,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:BigNumber,feeOnProjectOwner:boolean,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],referrers:string[]}> => {
             let result = await this.call('getCampaign',getCampaignParams(params),options);
             return (
             {
@@ -426,11 +422,14 @@ export class ProxyV3 extends _Contract{
                 startDate: new BigNumber(result.startDate),
                 endDate: new BigNumber(result.endDate),
                 targetAndSelectors: result.targetAndSelectors,
+                acceptAnyInToken: result.acceptAnyInToken,
+                acceptAnyOutToken: result.acceptAnyOutToken,
                 inTokens: result.inTokens,
+                directTransferInToken: result.directTransferInToken,
                 commissionInTokenConfig: result.commissionInTokenConfig.map(e=>(
                     {
-                        directTransfer: e.directTransfer,
                         rate: new BigNumber(e.rate),
+                        feeOnProjectOwner: e.feeOnProjectOwner,
                         capPerTransaction: new BigNumber(e.capPerTransaction),
                         capPerCampaign: new BigNumber(e.capPerCampaign)
                     }
@@ -439,6 +438,7 @@ export class ProxyV3 extends _Contract{
                 commissionOutTokenConfig: result.commissionOutTokenConfig.map(e=>(
                     {
                         rate: new BigNumber(e.rate),
+                        feeOnProjectOwner: e.feeOnProjectOwner,
                         capPerTransaction: new BigNumber(e.capPerTransaction),
                         capPerCampaign: new BigNumber(e.capPerCampaign)
                     }
@@ -458,14 +458,15 @@ export class ProxyV3 extends _Contract{
         }
         this.getCampaignArrayData1 = getCampaignArrayData1_call
         let getCampaignArrayData2Params = (params: IGetCampaignArrayData2Params) => [this.wallet.utils.toString(params.campaignId),this.wallet.utils.toString(params.inTokensStart),this.wallet.utils.toString(params.inTokensLength),this.wallet.utils.toString(params.outTokensStart),this.wallet.utils.toString(params.outTokensLength)];
-        let getCampaignArrayData2_call = async (params: IGetCampaignArrayData2Params, options?: TransactionOptions): Promise<{inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:BigNumber,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:BigNumber,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[]}> => {
+        let getCampaignArrayData2_call = async (params: IGetCampaignArrayData2Params, options?: TransactionOptions): Promise<{inTokens:string[],directTransferInToken:boolean[],commissionInTokenConfig:{rate:BigNumber,feeOnProjectOwner:boolean,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:BigNumber,feeOnProjectOwner:boolean,capPerTransaction:BigNumber,capPerCampaign:BigNumber}[]}> => {
             let result = await this.call('getCampaignArrayData2',getCampaignArrayData2Params(params),options);
             return {
                 inTokens: result.inTokens,
+                directTransferInToken: result.directTransferInToken,
                 commissionInTokenConfig: result.commissionInTokenConfig.map(e=>(
                     {
-                        directTransfer: e.directTransfer,
                         rate: new BigNumber(e.rate),
+                        feeOnProjectOwner: e.feeOnProjectOwner,
                         capPerTransaction: new BigNumber(e.capPerTransaction),
                         capPerCampaign: new BigNumber(e.capPerCampaign)
                     }
@@ -474,6 +475,7 @@ export class ProxyV3 extends _Contract{
                 commissionOutTokenConfig: result.commissionOutTokenConfig.map(e=>(
                     {
                         rate: new BigNumber(e.rate),
+                        feeOnProjectOwner: e.feeOnProjectOwner,
                         capPerTransaction: new BigNumber(e.capPerTransaction),
                         capPerCampaign: new BigNumber(e.capPerCampaign)
                     }
@@ -543,12 +545,6 @@ export class ProxyV3 extends _Contract{
             return result;
         }
         this.owner = owner_call
-        let projectBalanceParams = (params: IProjectBalanceParams) => [this.wallet.utils.toString(params.param1),params.param2];
-        let projectBalance_call = async (params: IProjectBalanceParams, options?: TransactionOptions): Promise<BigNumber> => {
-            let result = await this.call('projectBalance',projectBalanceParams(params),options);
-            return new BigNumber(result);
-        }
-        this.projectBalance = projectBalance_call
         let protocolFeeBalance_call = async (param1:string, options?: TransactionOptions): Promise<BigNumber> => {
             let result = await this.call('protocolFeeBalance',[param1],options);
             return new BigNumber(result);
@@ -662,16 +658,16 @@ export class ProxyV3 extends _Contract{
             call:deny_call
             , txData:deny_txData
         });
-        let newCampaign_send = async (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions): Promise<TransactionReceipt> => {
-            let result = await this.send('newCampaign',[[this.wallet.utils.toString(params.projectId),this.wallet.utils.toString(params.maxInputTokensInEachCall),this.wallet.utils.toString(params.maxOutputTokensInEachCall),params.referrersRequireApproval,this.wallet.utils.toString(params.startDate),this.wallet.utils.toString(params.endDate),params.targetAndSelectors,params.inTokens,params.commissionInTokenConfig.map(e=>([e.directTransfer,this.wallet.utils.toString(e.rate),this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.outTokens,params.commissionOutTokenConfig.map(e=>([this.wallet.utils.toString(e.rate),this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.referrers]],options);
+        let newCampaign_send = async (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],acceptAnyInToken:boolean,acceptAnyOutToken:boolean,inTokens:string[],directTransferInToken:boolean[],commissionInTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('newCampaign',[[this.wallet.utils.toString(params.projectId),this.wallet.utils.toString(params.maxInputTokensInEachCall),this.wallet.utils.toString(params.maxOutputTokensInEachCall),params.referrersRequireApproval,this.wallet.utils.toString(params.startDate),this.wallet.utils.toString(params.endDate),params.targetAndSelectors,params.acceptAnyInToken,params.acceptAnyOutToken,params.inTokens,params.directTransferInToken,params.commissionInTokenConfig.map(e=>([this.wallet.utils.toString(e.rate),e.feeOnProjectOwner,this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.outTokens,params.commissionOutTokenConfig.map(e=>([this.wallet.utils.toString(e.rate),e.feeOnProjectOwner,this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.referrers]],options);
             return result;
         }
-        let newCampaign_call = async (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions): Promise<BigNumber> => {
-            let result = await this.call('newCampaign',[[this.wallet.utils.toString(params.projectId),this.wallet.utils.toString(params.maxInputTokensInEachCall),this.wallet.utils.toString(params.maxOutputTokensInEachCall),params.referrersRequireApproval,this.wallet.utils.toString(params.startDate),this.wallet.utils.toString(params.endDate),params.targetAndSelectors,params.inTokens,params.commissionInTokenConfig.map(e=>([e.directTransfer,this.wallet.utils.toString(e.rate),this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.outTokens,params.commissionOutTokenConfig.map(e=>([this.wallet.utils.toString(e.rate),this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.referrers]],options);
+        let newCampaign_call = async (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],acceptAnyInToken:boolean,acceptAnyOutToken:boolean,inTokens:string[],directTransferInToken:boolean[],commissionInTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions): Promise<BigNumber> => {
+            let result = await this.call('newCampaign',[[this.wallet.utils.toString(params.projectId),this.wallet.utils.toString(params.maxInputTokensInEachCall),this.wallet.utils.toString(params.maxOutputTokensInEachCall),params.referrersRequireApproval,this.wallet.utils.toString(params.startDate),this.wallet.utils.toString(params.endDate),params.targetAndSelectors,params.acceptAnyInToken,params.acceptAnyOutToken,params.inTokens,params.directTransferInToken,params.commissionInTokenConfig.map(e=>([this.wallet.utils.toString(e.rate),e.feeOnProjectOwner,this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.outTokens,params.commissionOutTokenConfig.map(e=>([this.wallet.utils.toString(e.rate),e.feeOnProjectOwner,this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.referrers]],options);
             return new BigNumber(result);
         }
-        let newCampaign_txData = async (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],inTokens:string[],commissionInTokenConfig:{directTransfer:boolean,rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions): Promise<string> => {
-            let result = await this.txData('newCampaign',[[this.wallet.utils.toString(params.projectId),this.wallet.utils.toString(params.maxInputTokensInEachCall),this.wallet.utils.toString(params.maxOutputTokensInEachCall),params.referrersRequireApproval,this.wallet.utils.toString(params.startDate),this.wallet.utils.toString(params.endDate),params.targetAndSelectors,params.inTokens,params.commissionInTokenConfig.map(e=>([e.directTransfer,this.wallet.utils.toString(e.rate),this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.outTokens,params.commissionOutTokenConfig.map(e=>([this.wallet.utils.toString(e.rate),this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.referrers]],options);
+        let newCampaign_txData = async (params:{projectId:number|BigNumber,maxInputTokensInEachCall:number|BigNumber,maxOutputTokensInEachCall:number|BigNumber,referrersRequireApproval:boolean,startDate:number|BigNumber,endDate:number|BigNumber,targetAndSelectors:string[],acceptAnyInToken:boolean,acceptAnyOutToken:boolean,inTokens:string[],directTransferInToken:boolean[],commissionInTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],outTokens:string[],commissionOutTokenConfig:{rate:number|BigNumber,feeOnProjectOwner:boolean,capPerTransaction:number|BigNumber,capPerCampaign:number|BigNumber}[],referrers:string[]}, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('newCampaign',[[this.wallet.utils.toString(params.projectId),this.wallet.utils.toString(params.maxInputTokensInEachCall),this.wallet.utils.toString(params.maxOutputTokensInEachCall),params.referrersRequireApproval,this.wallet.utils.toString(params.startDate),this.wallet.utils.toString(params.endDate),params.targetAndSelectors,params.acceptAnyInToken,params.acceptAnyOutToken,params.inTokens,params.directTransferInToken,params.commissionInTokenConfig.map(e=>([this.wallet.utils.toString(e.rate),e.feeOnProjectOwner,this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.outTokens,params.commissionOutTokenConfig.map(e=>([this.wallet.utils.toString(e.rate),e.feeOnProjectOwner,this.wallet.utils.toString(e.capPerTransaction),this.wallet.utils.toString(e.capPerCampaign)])),params.referrers]],options);
             return result;
         }
         this.newCampaign = Object.assign(newCampaign_send, {
@@ -710,7 +706,7 @@ export class ProxyV3 extends _Contract{
             call:permit_call
             , txData:permit_txData
         });
-        let proxyCallParams = (params: IProxyCallParams) => [params.referrer,this.wallet.utils.toString(params.campaignId),params.target,params.tokensIn.map(e=>([e.token,this.wallet.utils.toString(e.amount)])),params.to,params.tokensOut,this.wallet.utils.stringToBytes(params.data)];
+        let proxyCallParams = (params: IProxyCallParams) => [this.wallet.utils.toString(params.campaignId),params.target,params.tokensIn.map(e=>([e.token,this.wallet.utils.toString(e.amount)])),params.to,params.tokensOut,params.referrer,this.wallet.utils.stringToBytes(params.data)];
         let proxyCall_send = async (params: IProxyCallParams, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt> => {
             let result = await this.send('proxyCall',proxyCallParams(params),options);
             return result;
