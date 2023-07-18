@@ -10,6 +10,7 @@
             "contracts/Proxy.sol",
             "contracts/ProxyV2.sol",
             "contracts/ProxyV3.sol"
-        ]
+        ],
+        "overrides": [{"sources":["ProxyV3.sol"], "optimizerRuns":25000}]
     }
 }
