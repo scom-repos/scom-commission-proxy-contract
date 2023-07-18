@@ -145,12 +145,12 @@ export async function oracleAddLiquidity(wallet: Wallet, oswap: OSWAP.IDeploymen
     wallet.defaultAccount = admin;
     let oswapAmount = 200;
     await token0.mint({ address: lp, amount: amount0 });
-    await token1.mint({ address: lp, amount: amount1 });
+    if (token1) await token1.mint({ address: lp, amount: amount1 });
     await oswap.openSwap.mint({ address: lp, amount: oswapAmount * 2 });
 
     wallet.defaultAccount = lp;
     await token0.approve({ spender: oswap.oracleLiquidityProvider.address, amount: amount0 });
-    await token1.approve({ spender: oswap.oracleLiquidityProvider.address, amount: amount1 });
+    if (token1) await token1.approve({ spender: oswap.oracleLiquidityProvider.address, amount: amount1 });
     await oswap.openSwap.approve({ spender: oswap.oracleLiquidityProvider.address, amount: Utils.toDecimals(oswapAmount * 2) });
 
     if (token1) {

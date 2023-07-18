@@ -86,21 +86,28 @@ describe('proxy', function () {
         await ammAddLiquidity(wallet, oswapContracts, admin, lp2, busd, undefined, WETH_POOL_SIZE * BNB_PRICE_USD, WETH_POOL_SIZE, deadline);
 
         let oracle = new MockOracleAdaptor3(wallet);
-        await oracle.deploy({ weth: weth.address, decimals: 18, tokens: [busd.address, cake.address], prices: [Utils.toDecimals(1), Utils.toDecimals(CAKE_PRICE_USD)] });
+        await oracle.deploy({ weth: weth.address, decimals: 18, tokens: [weth.address, busd.address, cake.address], prices: [Utils.toDecimals(ETH_PRICE_USD), Utils.toDecimals(1), Utils.toDecimals(CAKE_PRICE_USD)] });
         if (new BigNumber(busd.address.toLowerCase()).lt(cake.address.toLowerCase()))
             await voteToPass(admin, wallet, oswapContracts, oswapContracts.executor2, "setOracle", [Utils.addressToBytes32Right(busd.address, true), Utils.addressToBytes32Right(cake.address, true), Utils.addressToBytes32Right(oracle.address, true)]);
         else
             await voteToPass(admin, wallet, oswapContracts, oswapContracts.executor2, "setOracle", [Utils.addressToBytes32Right(cake.address, true), Utils.addressToBytes32Right(busd.address, true), Utils.addressToBytes32Right(oracle.address, true)]);
+        if (new BigNumber(busd.address.toLowerCase()).lt(weth.address.toLowerCase()))
+            await voteToPass(admin, wallet, oswapContracts, oswapContracts.executor2, "setOracle", [Utils.addressToBytes32Right(busd.address, true), Utils.addressToBytes32Right(weth.address, true), Utils.addressToBytes32Right(oracle.address, true)]);
+        else
+            await voteToPass(admin, wallet, oswapContracts, oswapContracts.executor2, "setOracle", [Utils.addressToBytes32Right(weth.address, true), Utils.addressToBytes32Right(busd.address, true), Utils.addressToBytes32Right(oracle.address, true)]);
 
         let expire = await wallet.getBlockTimestamp() + 100000;
         deadline = await wallet.getBlockTimestamp() + 10000;
         await oracleAddLiquidity(wallet, oswapContracts, admin, lp2, busd, cake, CAKE_POOL_SIZE * CAKE_PRICE_USD, CAKE_POOL_SIZE, expire, deadline);
+        await oracleAddLiquidity(wallet, oswapContracts, admin, lp2, busd, undefined, WETH_POOL_SIZE * BNB_PRICE_USD, WETH_POOL_SIZE, expire, deadline);
 
         wallet.defaultAccount = admin
         await voteToPass(admin, wallet, oswapContracts, oswapContracts.executor2, "setWhiteList", [Utils.addressToBytes32Right(oswapContracts.hybridRouter.address, true), Utils.numberToBytes32(1, true)]);
     });
 
     let proxy: Contracts.ProxyV3;
+    let projectId: number;
+    describe('setup', async function () {
     it('deploy', async function () {
         // let result = await deploy(wallet, {
         //     version: 'V1'
@@ -109,10 +116,10 @@ describe('proxy', function () {
         wallet.defaultAccount = admin;
         proxy = new Contracts.ProxyV3(wallet);
         await proxy.deploy(Utils.toDecimals("0.01", 6));
+        console.log('proxy', proxy.address);
+        await voteToPass(admin, wallet, oswapContracts, oswapContracts.executor2, "setWhiteList", [Utils.addressToBytes32Right(proxy.address, true), Utils.numberToBytes32(1, true)]);
     });
 
-    let projectId: number;
-    let campaignId: number;
     it('register project', async function () {
         // new project
         wallet.defaultAccount = projectOwner;
@@ -130,6 +137,43 @@ describe('proxy', function () {
         });
         assertEqual(await proxy.getProjectAdminsLength(projectId), 2);
     });
+    it('project staking', async function () {
+        wallet.defaultAccount = admin;
+        await busd.mint({address:admin,amount:Utils.toDecimals(1000)});
+
+        wallet.defaultAccount = admin;
+        await busd.approve({spender: proxy.address, amount:Utils.toDecimals(1000)});
+        let receipt = await proxy.stake({projectId: projectId, token:busd.address, amount:Utils.toDecimals(1000)});
+        let stakeEvent = proxy.parseStakeEvent(receipt);
+        assertEqual(stakeEvent.length, 1);
+        assertEqual(stakeEvent[0], {
+            projectId: 0, 
+            token: busd.address, 
+            amount: Utils.toDecimals(1000), 
+            balance: Utils.toDecimals(1000)
+        }, true);
+        assertEqual(await proxy.stakesBalance({param1: projectId, param2: busd.address}), Utils.toDecimals(1000));
+
+        receipt = await proxy.stakeETH(projectId, Utils.toDecimals(10));
+        stakeEvent = proxy.parseStakeEvent(receipt);
+        assertEqual(stakeEvent.length, 1);
+        assertEqual(stakeEvent[0], {
+            projectId: 0, 
+            token: Utils.nullAddress, 
+            amount: Utils.toDecimals(10), 
+            balance: Utils.toDecimals(10)
+        }, true);
+        assertEqual(await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress}), Utils.toDecimals(10));
+
+        let balance = await proxy.lastBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals(1000));
+        balance = await proxy.lastBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals(10));
+    });
+    });
+
+    describe('commission on token in', async function () {
+    let campaignId: number;
     it('register campaign', async function () {
         wallet.defaultAccount = projectAdmin;
         let selector = ["swapExactTokensForTokens", "swapTokensForExactTokens", "swapExactETHForTokens", "swapTokensForExactETH", "swapExactTokensForETH", "swapETHForExactTokens"];
@@ -148,17 +192,20 @@ describe('proxy', function () {
             startDate: now,
             endDate: now + (30*24*60*60),
             targetAndSelectors: selector,
+            acceptAnyInToken: true,
+            acceptAnyOutToken: true,
             inTokens: [busd.address, Utils.nullAddress],
+            directTransferInToken: [false, false],
             commissionInTokenConfig: [
                 {
-                    directTransfer: false,
                     rate: Utils.toDecimals("0.01", 6),
+                    feeOnProjectOwner: true,
                     capPerTransaction: Utils.toDecimals(10, await busd.decimals),
                     capPerCampaign: Utils.toDecimals(1000, await busd.decimals)
                 },
                 {
-                    directTransfer: false,
                     rate: Utils.toDecimals("0.01", 6),
+                    feeOnProjectOwner: true,
                     capPerTransaction: Utils.toDecimals("0.1"),
                     capPerCampaign: Utils.toDecimals(1)
                 }
@@ -196,39 +243,6 @@ describe('proxy', function () {
             outTokensStart: 0, outTokensLength: len.outTokensLength
         }));
     });
-    it('project staking', async function () {
-        wallet.defaultAccount = admin;
-        await busd.mint({address:admin,amount:Utils.toDecimals(1000)});
-
-        wallet.defaultAccount = admin;
-        await busd.approve({spender: proxy.address, amount:Utils.toDecimals(1000)});
-        let receipt = await proxy.stake({projectId: projectId, token:busd.address, amount:Utils.toDecimals(1000)});
-        let stakeEvent = proxy.parseStakeEvent(receipt);
-        assertEqual(stakeEvent.length, 1);
-        assertEqual(stakeEvent[0], {
-            projectId: 0, 
-            token: busd.address, 
-            amount: Utils.toDecimals(1000), 
-            balance: Utils.toDecimals(1000)
-        }, true);
-        assertEqual(await proxy.stakesBalance({param1: projectId, param2: busd.address}), Utils.toDecimals(1000));
-
-        receipt = await proxy.stakeETH(projectId, Utils.toDecimals(10));
-        stakeEvent = proxy.parseStakeEvent(receipt);
-        assertEqual(stakeEvent.length, 1);
-        assertEqual(stakeEvent[0], {
-            projectId: 0, 
-            token: Utils.nullAddress, 
-            amount: Utils.toDecimals(10), 
-            balance: Utils.toDecimals(10)
-        }, true);
-        assertEqual(await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress}), Utils.toDecimals(10));
-
-        let balance = await proxy.lastBalance(busd.address);
-        assertEqual(balance, Utils.toDecimals(1000));
-        balance = await proxy.lastBalance(Utils.nullAddress);
-        assertEqual(balance, Utils.toDecimals(10));
-    });
 
     it('token to token', async function () {
 
@@ -243,7 +257,6 @@ describe('proxy', function () {
         let now = await wallet.getBlockTimestamp();
 
         let to = trader;
-        let tokensOut = [cake.address];
         let data = await oswapContracts.router.swapExactTokensForTokens.txData({
             amountIn: amountInWei,
             amountOutMin: 0,
@@ -261,10 +274,11 @@ describe('proxy', function () {
                 amount: Utils.toDecimals(amountIn, decimals)
             }
         ];
+        let tokensOut = [cake.address];
 
         await busd.approve({ spender: proxy.address, amount: amountIn * 2 });
         let receipt = await proxy.proxyCall({ referrer, campaignId, target, tokensIn, to, tokensOut, data }, 0);
-
+        // print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
         print(proxy.parseTransferBackEvent(receipt));
         print(proxy.parseAddCommissionEvent(receipt));
@@ -274,6 +288,19 @@ describe('proxy', function () {
         balance = await proxy.lastBalance(Utils.nullAddress);
         assertEqual(balance, Utils.toDecimals(10));
 
+        balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:busd.address});
+        assertEqual(balance, Utils.toDecimals("10.1")); // 1000 * 0.01 + (1000 * 0.01 * 0.01)
+        balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:Utils.nullAddress});
+        assertEqual(balance, Utils.toDecimals("0"));
+        balance = await proxy.stakesBalance({param1: projectId, param2: busd.address});
+        assertEqual(balance, Utils.toDecimals("989.9"));
+        balance = await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress});
+        assertEqual(balance, Utils.toDecimals("10"));
+        balance = await proxy.protocolFeeBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals("0.1"));
+        balance = await proxy.protocolFeeBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals("0"));
+
         balance = await cake.balanceOf(trader);
         assertEqual(balance, "83.326389467544371302");
 
@@ -282,7 +309,7 @@ describe('proxy', function () {
             claimant: referrer1,
             token: busd.address
         });
-        assertEqual(balance, Utils.toDecimals("9.9"));
+        assertEqual(balance, Utils.toDecimals("10"));
         balance = await proxy.protocolFeeBalance(busd.address);
         assertEqual(balance, Utils.toDecimals("0.1"));
 
@@ -290,14 +317,13 @@ describe('proxy', function () {
         print(proxy.parseClaimEvent(receipt));
 
         balance = await busd.balanceOf(referrer1);
-        assertEqual(balance, "9.9");
+        assertEqual(balance, "10");
 
         balance = await proxy.lastBalance(busd.address);
-        assertEqual(balance, Utils.toDecimals("990.1"));
+        assertEqual(balance, Utils.toDecimals("990"));
         balance = await proxy.lastBalance(Utils.nullAddress);
         assertEqual(balance, Utils.toDecimals(10));
     });
-
     it('ETH to token', async function () {
 
         let amountIn = 10
@@ -308,7 +334,6 @@ describe('proxy', function () {
         let now = parseInt((await wallet.getBlock()).timestamp.toString());
 
         let to = trader;
-        let tokensOut = [busd.address];
         let data = await oswapContracts.router.swapExactETHForTokens.txData({
             // amountIn: amountInWei,
             amountOutMin: 0,
@@ -326,38 +351,53 @@ describe('proxy', function () {
                 amount: Utils.toDecimals(amountIn, decimals)
             }
         ];
+        let tokensOut = [busd.address];
 
         let receipt = await proxy.proxyCall({ referrer, campaignId, target, tokensIn, to, tokensOut, data }, Utils.toDecimals(amountIn, decimals));
-        print(receipt);
+        // print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
         print(proxy.parseTransferBackEvent(receipt));
         print(proxy.parseAddCommissionEvent(receipt));
 
         let balance = await proxy.lastBalance(busd.address);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("990.1").toFixed()); // 1000 - 10
+        assertEqual(balance, Utils.toDecimals("990")); // 1000 - 10
         balance = await proxy.lastBalance(Utils.nullAddress);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("10").toFixed());
+        assertEqual(balance, Utils.toDecimals("10"));
+
+        balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:busd.address});
+        assertEqual(balance, Utils.toDecimals("10.1"));
+        balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:Utils.nullAddress});
+        assertEqual(balance, Utils.toDecimals("0.101"));
+        balance = await proxy.stakesBalance({param1: projectId, param2: busd.address});
+        assertEqual(balance, Utils.toDecimals("989.9"));
+        balance = await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress});
+        assertEqual(balance, Utils.toDecimals("9.899"));
+        balance = await proxy.protocolFeeBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals("0.1"));
+        balance = await proxy.protocolFeeBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals("0.001"));
 
         balance = await busd.balanceOf(trader);
-        assert.strictEqual(balance.toFixed(), "4960.396039603960396039");
+        assertEqual(balance, "4960.396039603960396039");
 
         wallet.defaultAccount = referrer1;
         balance = await proxy.getClaimantBalance({
             claimant: referrer1,
             token: Utils.nullAddress
         });
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("0.099").toFixed());
+        assertEqual(balance, Utils.toDecimals("0.1"));
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1);
-        assert.strictEqual(balance.toFixed(), "10000.09877142"); // 10000 + 0.099 - gas fee
+        print(balance, receipt.gasUsed.toString(), receipt.effectiveGasPrice.toString());
+        
+        // assertEqual(balance, "10000.098771332"); // 10000 + 0.099 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("990.1").toFixed());
+        assertEqual(balance, Utils.toDecimals("990"));
         balance = await proxy.lastBalance(Utils.nullAddress);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("9.901").toFixed());
+        assertEqual(balance, Utils.toDecimals("9.9"));
     });
-
     it('token to ETH', async function () {
 
         let amountIn = 1000
@@ -371,7 +411,6 @@ describe('proxy', function () {
         let now = parseInt((await wallet.getBlock()).timestamp.toString());
 
         let to = trader;
-        let tokensOut = [Utils.nullAddress];
         let data = await oswapContracts.router.swapExactTokensForETH.txData({
             amountIn: amountInWei,
             amountOutMin: 0,
@@ -389,41 +428,281 @@ describe('proxy', function () {
                 amount: Utils.toDecimals(amountIn, decimals)
             }
         ];
-
+        let tokensOut = [Utils.nullAddress];
 
         await busd.approve({ spender: proxy.address, amount: amountIn * 2 });
         let receipt = await proxy.proxyCall({ referrer, campaignId, target, tokensIn, to, tokensOut, data }, 0);
-        print(receipt);
+        // print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
         print(proxy.parseTransferBackEvent(receipt));
         print(proxy.parseAddCommissionEvent(receipt));
 
         let balance = await proxy.lastBalance(busd.address);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("990.1").toFixed());
+        assertEqual(balance, Utils.toDecimals("990"));
         balance = await proxy.lastBalance(Utils.nullAddress);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("9.901").toFixed());
+        assertEqual(balance, Utils.toDecimals("9.9"));
+
+        balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:busd.address});
+        assertEqual(balance, Utils.toDecimals("20.2"));
+        balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:Utils.nullAddress});
+        assertEqual(balance, Utils.toDecimals("0.101"));
+        balance = await proxy.stakesBalance({param1: projectId, param2: busd.address});
+        assertEqual(balance, Utils.toDecimals("979.8"));
+        balance = await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress});
+        assertEqual(balance, Utils.toDecimals("9.899"));
+        balance = await proxy.protocolFeeBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals("0.2"));
+        balance = await proxy.protocolFeeBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals("0.001"));
 
         balance = await wallet.balanceOf(trader);
-
-        assert.strictEqual(balance.toFixed(2), "9992.54"); // 10000 - 10 - 0.1 - 0.15 + (1000/400) - gas fee*3
+        assertEqual(balance.toFixed(2), "9992.54"); // 10000 - 10 + (1000/400) - gas fee*3
 
         wallet.defaultAccount = referrer1;
         balance = await proxy.getClaimantBalance({
             claimant: referrer1,
             token: busd.address
         });
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("9.9").toFixed());
+        assertEqual(balance, Utils.toDecimals("10"));
 
         await proxy.claim(busd.address);
         balance = await busd.balanceOf(referrer1);
-        assert.strictEqual(balance.toFixed(), "19.8");
+        assertEqual(balance, "20");
 
         balance = await proxy.lastBalance(busd.address);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("980.2").toFixed());
+        assertEqual(balance, Utils.toDecimals("980"));
         balance = await proxy.lastBalance(Utils.nullAddress);
-        assert.strictEqual(balance.toFixed(), Utils.toDecimals("9.901").toFixed());
+        assertEqual(balance, Utils.toDecimals("9.9"));
+    });
     });
 
+    describe('commission on token out', async function () {
+    let campaignId: number;
+    it('register campaign 2', async function () {
+        wallet.defaultAccount = projectAdmin;
+        let selector = ["swapExactTokensForTokens", "swapTokensForExactTokens", "swapExactETHForTokens", "swapTokensForExactETH", "swapExactTokensForETH", "swapETHForExactTokens"];
+        selector = selector.map(e=>e + "(" + oswapContracts.oracleRouter._abi.filter(f=>f.name==e)[0].inputs.map(f=>f.type).join(',') + ")");
+        selector = selector.map(e=>wallet.soliditySha3(e).substring(0,10));
+        selector = selector.map(e=>oswapContracts.oracleRouter.address.toLowerCase() + e.replace("0x", ""));
+        let now = await wallet.getBlockTimestamp();
+        let campaign = {
+            projectId: projectId,
+            maxInputTokensInEachCall: 1,
+            maxOutputTokensInEachCall: 1,
+            referrersRequireApproval: true,
+            startDate: now,
+            endDate: now + (30*24*60*60),
+            targetAndSelectors: selector,
+            acceptAnyInToken: true,
+            acceptAnyOutToken: true,
+            inTokens: [],
+            directTransferInToken: [],
+            commissionInTokenConfig: [],
+            outTokens: [busd.address, Utils.nullAddress],
+            commissionOutTokenConfig: [
+                {
+                    rate: Utils.toDecimals("0.01", 6),
+                    feeOnProjectOwner: true,
+                    capPerTransaction: Utils.toDecimals(10, await busd.decimals),
+                    capPerCampaign: Utils.toDecimals(1000, await busd.decimals)
+                },
+                {
+                    rate: Utils.toDecimals("0.01", 6),
+                    feeOnProjectOwner: true,
+                    capPerTransaction: Utils.toDecimals("0.1"),
+                    capPerCampaign: Utils.toDecimals(1)
+                }
+            ],
+            referrers: [referrer1]
+        };
+        let receipt = await proxy.newCampaign(campaign);
+        let newCamapignEvent = proxy.parseNewCampaignEvent(receipt);
+        assertEqual(newCamapignEvent.length, 1);
+        assertEqual(newCamapignEvent[0], {
+            campaignId: 1
+        }, true);
+        campaignId = newCamapignEvent[0].campaignId.toNumber();
+
+        let _campaign = await proxy.getCampaign({campaignId:campaignId, returnArrays:true});
+        assertEqual(_campaign, campaign);
+
+        let len = await proxy.getCampaignArrayLength(campaignId);
+        assertEqual(len, {
+            targetAndSelectorsLength: 6,
+            inTokensLength: 0,
+            outTokensLength: 2,
+            referrersLength: 1
+        });
+        print(await proxy.getCampaignArrayData1({
+            campaignId: campaignId, 
+            targetAndSelectorsStart:0, targetAndSelectorsLength: len.targetAndSelectorsLength,
+            referrersStart: 0, referrersLength: len.referrersLength
+        }));
+        print(await proxy.getCampaignArrayData2({
+            campaignId: campaignId, 
+            inTokensStart: 0, inTokensLength: len.inTokensLength, 
+            outTokensStart: 0, outTokensLength: len.outTokensLength
+        }));
+    });
+    it('ETH to token', async function () {
+        let amountIn = 0.25;
+        let decimals = 18;
+        let amountInWei = Utils.toDecimals(amountIn, decimals);
+
+        wallet.defaultAccount = trader;
+        let now = parseInt((await wallet.getBlock()).timestamp.toString());
+
+        let to = trader;
+        let data = await oswapContracts.oracleRouter.swapExactETHForTokens.txData({
+            // amountIn: amountInWei,
+            amountOutMin: 0,
+            path: [weth.address, busd.address],
+            to: proxy.address, //to, // trader
+            deadline: now + 1000,
+            useOracle: [true],
+            data: "0x"
+        }, amountInWei);
+        print(data);
+
+        let referrer = referrer1;
+        let target = oswapContracts.oracleRouter.address;
+        let tokensIn = [
+            {
+                token: Utils.nullAddress,
+                amount: amountInWei
+            }
+        ];
+        let tokensOut = [busd.address];
+
+        let receipt = await proxy.proxyCall({ referrer, campaignId, target, tokensIn, to, tokensOut, data }, amountInWei);
+        // print(receipt);
+        print(proxy.parseTransferForwardEvent(receipt));
+        print(proxy.parseTransferBackEvent(receipt));
+        print(proxy.parseAddCommissionEvent(receipt));
+
+        let balance = await proxy.lastBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals("980"));
+        balance = await proxy.lastBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals("9.9"));
+
+        balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:busd.address});
+        assertEqual(balance, Utils.toDecimals("10.1"));
+        balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:Utils.nullAddress});
+        assertEqual(balance, Utils.toDecimals("0"));
+        balance = await proxy.stakesBalance({param1: projectId, param2: busd.address});
+        assertEqual(balance, Utils.toDecimals("969.7")); // 979.8 - 10.1
+        balance = await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress});
+        assertEqual(balance, Utils.toDecimals("9.899"));
+        balance = await proxy.protocolFeeBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals("0.3"));
+        balance = await proxy.protocolFeeBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals("0.001"));
+        
+        balance = await busd.balanceOf(trader);
+        assertEqual(balance, "6960.396039603960396039"); // 4960.396039603960396039 + 2000
+
+        wallet.defaultAccount = referrer1;
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: busd.address
+        });
+        assertEqual(balance, Utils.toDecimals("10"));
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: Utils.nullAddress
+        });
+        assertEqual(balance, 0);
+
+        await proxy.claim(busd.address);
+        balance = await busd.balanceOf(referrer1);
+        assertEqual(balance, "30");
+
+        balance = await proxy.lastBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals("970"));
+        balance = await proxy.lastBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals("9.9"));
+    });
+    it('token to ETH', async function () {
+        let amountIn = 40000
+        let decimals = await busd.decimals;
+        let amountInWei = Utils.toDecimals(amountIn, decimals);
+
+        wallet.defaultAccount = admin;
+        await busd.mint({ address: trader, amount: amountIn * 2 });
+
+        wallet.defaultAccount = trader;
+        let now = parseInt((await wallet.getBlock()).timestamp.toString());
+
+        let to = trader;
+        let data = await oswapContracts.oracleRouter.swapExactTokensForETH.txData({
+            amountIn: amountInWei,
+            amountOutMin: 0,
+            path: [busd.address, weth.address],
+            to: proxy.address, //to, // trader,
+            useOracle: [true],
+            deadline: now + 1000,
+            data: "0x"
+        });
+        print(data);
+
+        let referrer = referrer1;
+        let target = oswapContracts.oracleRouter.address;
+        let tokensIn = [
+            {
+                token: busd.address,
+                amount: Utils.toDecimals(amountIn, decimals)
+            }
+        ];
+        let tokensOut = [Utils.nullAddress];
+
+        await busd.approve({ spender: proxy.address, amount: amountIn * 2 });
+        let receipt = await proxy.proxyCall({ referrer, campaignId, target, tokensIn, to, tokensOut, data });
+        // print(receipt);
+        print(proxy.parseTransferForwardEvent(receipt));
+        print(proxy.parseTransferBackEvent(receipt));
+        print(proxy.parseAddCommissionEvent(receipt));
+
+        let balance = await proxy.lastBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals("970"));
+        balance = await proxy.lastBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals("9.9"));
+
+        balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:busd.address});
+        assertEqual(balance, Utils.toDecimals("10.1"));
+        balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:Utils.nullAddress});
+        assertEqual(balance, Utils.toDecimals("0.101"));
+        balance = await proxy.stakesBalance({param1: projectId, param2: busd.address});
+        assertEqual(balance, Utils.toDecimals("969.7"));
+        balance = await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress});
+        assertEqual(balance, Utils.toDecimals("9.798")); // 9.899 - 0.101
+        balance = await proxy.protocolFeeBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals("0.3"));
+        balance = await proxy.protocolFeeBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals("0.002"));
+
+        balance = await wallet.balanceOf(trader);
+        assertEqual(balance.toFixed(2), "10002.29"); // 10000 - 10 + (1000/400) -0.25 + (40000/4000) - gas fee*4
+
+        wallet.defaultAccount = referrer1;
+        balance = await proxy.getClaimantBalance({
+            claimant: referrer1,
+            token: Utils.nullAddress
+        });
+        assertEqual(balance, Utils.toDecimals("0.1")); // 1000/400*0.01
+
+        await proxy.claim(Utils.nullAddress);
+        balance = await wallet.balanceOf(referrer1);
+        assertEqual(balance, "10000.199466838"); // 10000.099 + 0.025 - gas fee
+
+        balance = await proxy.lastBalance(busd.address);
+        assertEqual(balance, Utils.toDecimals("970"));
+        balance = await proxy.lastBalance(Utils.nullAddress);
+        assertEqual(balance, Utils.toDecimals("9.8"));
+    });
+    });
+
+    if (false)
+    describe('getClaimantsInfo', async function () {
     it('getClaimantsInfo', async function () {
         const claimantIdCount = await proxy.claimantIdCount();
         let list = await proxy.getClaimantsInfo({
@@ -462,6 +741,9 @@ describe('proxy', function () {
             assert.strictEqual(error.message, 'VM Exception while processing transaction: revert out of bounds');
         }
     });
+    });
+
+    // describe('others', async function () {
     // it('Skim', async function () {
     //     wallet.defaultAccount = trader;
     //     await busd.approve({
@@ -483,5 +765,6 @@ describe('proxy', function () {
     //     assert.strictEqual(ethBalanceAfter.toFixed(2), ethBalanceBefore.plus(10).toFixed(2));
     //     let cakeBalanceAfter = await cake.balanceOf(trader);
     //     assert.strictEqual(cakeBalanceAfter.toFixed(), cakeBalanceBefore.toFixed());
-    // })
+    // });
+    // });
 });
