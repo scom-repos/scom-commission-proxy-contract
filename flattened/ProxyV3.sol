@@ -653,6 +653,7 @@ contract ProxyV3 is Authorization {
     event RemoveProjectAdmin(uint256 indexed projectId, address indexed admin);
     event NewCampaign(uint256 indexed campaignId);
     event Stake(uint256 indexed projectId, IERC20 indexed token, uint256 amount, uint256 balance);
+    event Unstake(uint256 indexed projectId, IERC20 indexed token, uint256 amount, uint256 balance);
     event TransferForward(address indexed target, IERC20 indexed token, address sender, uint256 amount);
     event TransferBack(address indexed target, IERC20 indexed token, address sender, uint256 amount);
     event Claim(address indexed from, IERC20 indexed token, uint256 amount);
@@ -1136,6 +1137,35 @@ contract ProxyV3 is Authorization {
         }
         if (msg.value > 0) {
             _stake(projectId, IERC20(address(0)), msg.value);
+        }
+    }
+    function _unstake(uint256 projectId, IERC20 token, uint256 amount) internal {
+        require(msg.sender == projects[projectId].owner, "not from owner");
+        require(amount <= stakesBalance[projectId][token], "amount exceeded balance");
+        unchecked {
+            stakesBalance[projectId][token] -= amount;   
+        }
+        lastBalance[token] -= amount;
+        if (address(token) != address(0))
+            token.safeTransfer(msg.sender, amount);
+        else
+            _safeTransferETH(msg.sender, amount);
+
+        emit Unstake(projectId, token, amount, stakesBalance[projectId][token]);
+    }
+    function unstake(uint256 projectId, IERC20 token, uint256 amount) external {
+        _unstake(projectId, token, amount);
+    }
+    function unstakeETH(uint256 projectId) external payable {
+        _unstake(projectId, IERC20(address(0)), msg.value);
+    }
+    function unstakeMultiple(uint256 projectId, IERC20[] calldata token, uint256[] calldata amount) external payable {
+        uint256 length = token.length;
+        require(length == amount.length, "length not matched");
+        uint256 i;
+        while (i < length) {
+            _unstake(projectId, token[i], amount[i]);
+            unchecked { i++; }
         }
     }
 

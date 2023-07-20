@@ -830,6 +830,16 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
         projectId: number | BigNumber;
         newOwner: string;
     }
+    export interface IUnstakeParams {
+        projectId: number | BigNumber;
+        token: string;
+        amount: number | BigNumber;
+    }
+    export interface IUnstakeMultipleParams {
+        projectId: number | BigNumber;
+        token: string[];
+        amount: (number | BigNumber)[];
+    }
     export class ProxyV3 extends _Contract {
         static _abi: any;
         constructor(wallet: IWallet, address?: string);
@@ -870,6 +880,8 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
         decodeTransferOwnershipEvent(event: Event): ProxyV3.TransferOwnershipEvent;
         parseTransferProjectOwnershipEvent(receipt: TransactionReceipt): ProxyV3.TransferProjectOwnershipEvent[];
         decodeTransferProjectOwnershipEvent(event: Event): ProxyV3.TransferProjectOwnershipEvent;
+        parseUnstakeEvent(receipt: TransactionReceipt): ProxyV3.UnstakeEvent[];
+        decodeUnstakeEvent(event: Event): ProxyV3.UnstakeEvent;
         addProjectAdmin: {
             (params: IAddProjectAdminParams, options?: TransactionOptions): Promise<TransactionReceipt>;
             call: (params: IAddProjectAdminParams, options?: TransactionOptions) => Promise<void>;
@@ -1167,6 +1179,21 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
             call: (params: ITransferProjectOwnershipParams, options?: TransactionOptions) => Promise<void>;
             txData: (params: ITransferProjectOwnershipParams, options?: TransactionOptions) => Promise<string>;
         };
+        unstake: {
+            (params: IUnstakeParams, options?: TransactionOptions): Promise<TransactionReceipt>;
+            call: (params: IUnstakeParams, options?: TransactionOptions) => Promise<void>;
+            txData: (params: IUnstakeParams, options?: TransactionOptions) => Promise<string>;
+        };
+        unstakeETH: {
+            (projectId: number | BigNumber, options?: number | BigNumber | TransactionOptions): Promise<TransactionReceipt>;
+            call: (projectId: number | BigNumber, options?: number | BigNumber | TransactionOptions) => Promise<void>;
+            txData: (projectId: number | BigNumber, options?: number | BigNumber | TransactionOptions) => Promise<string>;
+        };
+        unstakeMultiple: {
+            (params: IUnstakeMultipleParams, options?: number | BigNumber | TransactionOptions): Promise<TransactionReceipt>;
+            call: (params: IUnstakeMultipleParams, options?: number | BigNumber | TransactionOptions) => Promise<void>;
+            txData: (params: IUnstakeMultipleParams, options?: number | BigNumber | TransactionOptions) => Promise<string>;
+        };
         private assign;
     }
     export module ProxyV3 {
@@ -1263,6 +1290,13 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
         interface TransferProjectOwnershipEvent {
             projectId: BigNumber;
             newOwner: string;
+            _event: Event;
+        }
+        interface UnstakeEvent {
+            projectId: BigNumber;
+            token: string;
+            amount: BigNumber;
+            balance: BigNumber;
             _event: Event;
         }
     }

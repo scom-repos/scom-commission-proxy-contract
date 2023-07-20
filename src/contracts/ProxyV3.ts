@@ -14,6 +14,8 @@ export interface IStakeParams {projectId:number|BigNumber;token:string;amount:nu
 export interface IStakeMultipleParams {projectId:number|BigNumber;token:string[];amount:(number|BigNumber)[]}
 export interface IStakesBalanceParams {param1:number|BigNumber;param2:string}
 export interface ITransferProjectOwnershipParams {projectId:number|BigNumber;newOwner:string}
+export interface IUnstakeParams {projectId:number|BigNumber;token:string;amount:number|BigNumber}
+export interface IUnstakeMultipleParams {projectId:number|BigNumber;token:string[];amount:(number|BigNumber)[]}
 export class ProxyV3 extends _Contract{
     static _abi: any = Bin.abi;
     constructor(wallet: IWallet, address?: string){
@@ -226,6 +228,19 @@ export class ProxyV3 extends _Contract{
             _event: event
         };
     }
+    parseUnstakeEvent(receipt: TransactionReceipt): ProxyV3.UnstakeEvent[]{
+        return this.parseEvents(receipt, "Unstake").map(e=>this.decodeUnstakeEvent(e));
+    }
+    decodeUnstakeEvent(event: Event): ProxyV3.UnstakeEvent{
+        let result = event.data;
+        return {
+            projectId: new BigNumber(result.projectId),
+            token: result.token,
+            amount: new BigNumber(result.amount),
+            balance: new BigNumber(result.balance),
+            _event: event
+        };
+    }
     addProjectAdmin: {
         (params: IAddProjectAdminParams, options?: TransactionOptions): Promise<TransactionReceipt>;
         call: (params: IAddProjectAdminParams, options?: TransactionOptions) => Promise<void>;
@@ -382,6 +397,21 @@ export class ProxyV3 extends _Contract{
         (params: ITransferProjectOwnershipParams, options?: TransactionOptions): Promise<TransactionReceipt>;
         call: (params: ITransferProjectOwnershipParams, options?: TransactionOptions) => Promise<void>;
         txData: (params: ITransferProjectOwnershipParams, options?: TransactionOptions) => Promise<string>;
+    }
+    unstake: {
+        (params: IUnstakeParams, options?: TransactionOptions): Promise<TransactionReceipt>;
+        call: (params: IUnstakeParams, options?: TransactionOptions) => Promise<void>;
+        txData: (params: IUnstakeParams, options?: TransactionOptions) => Promise<string>;
+    }
+    unstakeETH: {
+        (projectId:number|BigNumber, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt>;
+        call: (projectId:number|BigNumber, options?: number|BigNumber|TransactionOptions) => Promise<void>;
+        txData: (projectId:number|BigNumber, options?: number|BigNumber|TransactionOptions) => Promise<string>;
+    }
+    unstakeMultiple: {
+        (params: IUnstakeMultipleParams, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt>;
+        call: (params: IUnstakeMultipleParams, options?: number|BigNumber|TransactionOptions) => Promise<void>;
+        txData: (params: IUnstakeMultipleParams, options?: number|BigNumber|TransactionOptions) => Promise<string>;
     }
     private assign(){
         let campaignAccumulatedCommissionParams = (params: ICampaignAccumulatedCommissionParams) => [this.wallet.utils.toString(params.param1),params.param2];
@@ -887,6 +917,56 @@ export class ProxyV3 extends _Contract{
             call:transferProjectOwnership_call
             , txData:transferProjectOwnership_txData
         });
+        let unstakeParams = (params: IUnstakeParams) => [this.wallet.utils.toString(params.projectId),params.token,this.wallet.utils.toString(params.amount)];
+        let unstake_send = async (params: IUnstakeParams, options?: TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('unstake',unstakeParams(params),options);
+            return result;
+        }
+        let unstake_call = async (params: IUnstakeParams, options?: TransactionOptions): Promise<void> => {
+            let result = await this.call('unstake',unstakeParams(params),options);
+            return;
+        }
+        let unstake_txData = async (params: IUnstakeParams, options?: TransactionOptions): Promise<string> => {
+            let result = await this.txData('unstake',unstakeParams(params),options);
+            return result;
+        }
+        this.unstake = Object.assign(unstake_send, {
+            call:unstake_call
+            , txData:unstake_txData
+        });
+        let unstakeETH_send = async (projectId:number|BigNumber, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('unstakeETH',[this.wallet.utils.toString(projectId)],options);
+            return result;
+        }
+        let unstakeETH_call = async (projectId:number|BigNumber, options?: number|BigNumber|TransactionOptions): Promise<void> => {
+            let result = await this.call('unstakeETH',[this.wallet.utils.toString(projectId)],options);
+            return;
+        }
+        let unstakeETH_txData = async (projectId:number|BigNumber, options?: number|BigNumber|TransactionOptions): Promise<string> => {
+            let result = await this.txData('unstakeETH',[this.wallet.utils.toString(projectId)],options);
+            return result;
+        }
+        this.unstakeETH = Object.assign(unstakeETH_send, {
+            call:unstakeETH_call
+            , txData:unstakeETH_txData
+        });
+        let unstakeMultipleParams = (params: IUnstakeMultipleParams) => [this.wallet.utils.toString(params.projectId),params.token,this.wallet.utils.toString(params.amount)];
+        let unstakeMultiple_send = async (params: IUnstakeMultipleParams, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt> => {
+            let result = await this.send('unstakeMultiple',unstakeMultipleParams(params),options);
+            return result;
+        }
+        let unstakeMultiple_call = async (params: IUnstakeMultipleParams, options?: number|BigNumber|TransactionOptions): Promise<void> => {
+            let result = await this.call('unstakeMultiple',unstakeMultipleParams(params),options);
+            return;
+        }
+        let unstakeMultiple_txData = async (params: IUnstakeMultipleParams, options?: number|BigNumber|TransactionOptions): Promise<string> => {
+            let result = await this.txData('unstakeMultiple',unstakeMultipleParams(params),options);
+            return result;
+        }
+        this.unstakeMultiple = Object.assign(unstakeMultiple_send, {
+            call:unstakeMultiple_call
+            , txData:unstakeMultiple_txData
+        });
     }
 }
 export module ProxyV3{
@@ -908,4 +988,5 @@ export module ProxyV3{
     export interface TransferForwardEvent {target:string,token:string,sender:string,amount:BigNumber,_event:Event}
     export interface TransferOwnershipEvent {user:string,_event:Event}
     export interface TransferProjectOwnershipEvent {projectId:BigNumber,newOwner:string,_event:Event}
+    export interface UnstakeEvent {projectId:BigNumber,token:string,amount:BigNumber,balance:BigNumber,_event:Event}
 }
