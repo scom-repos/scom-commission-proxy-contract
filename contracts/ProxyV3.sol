@@ -465,7 +465,7 @@ contract ProxyV3 is Authorization {
         Campaign storage campaign = campaigns[campaignId];
         require(campaign.isTargetAndSelector[bytes24(abi.encodePacked(target,bytes4(data)))], "selector not matched");
         require(campaign.startDate <= block.timestamp && block.timestamp <= campaign.endDate, "campaign not started yet / already ended");
-        require(campaign.referrersRequireApproval && campaign.referrers.length > 0 && campaign.referrers[campaign.referrersInv[referrer]] == referrer, "not a referrer");
+        require(!campaign.referrersRequireApproval || (campaign.referrers.length > 0 && campaign.referrers[campaign.referrersInv[referrer]] == referrer), "not a referrer");
 
         uint ethAmount;
 
