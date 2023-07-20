@@ -26,7 +26,8 @@
         "typescript": "4.8.4"
     },
     "scripts": {
-        "build": "rm -rf lib && rm -rf dist && rm -rf types && rm -rf pluginTypes && rm -rf src/contracts && npx @ijstech/compiler",
+        "build": "rm -rf lib && rm -rf dist && rm -rf types && rm -rf pluginTypes && rm -rf src/contracts && npx @ijstech/compiler && npm run build:deployer",
+        "build:deployer": "rm -rf deployer && npx @ijstech/cli bundle deployer",
         "build:mocks": "cd packages/mock-contracts && npm run build",
         "deployer": "npx @ijstech/cli serve 8080 deployer",
         "test": "mocha --exit --require ts-node/register --require tsconfig-paths/register --timeout 1000000 ./test/*.test.ts",

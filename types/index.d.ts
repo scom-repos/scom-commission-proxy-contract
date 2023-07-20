@@ -3,6 +3,7 @@ export { Contracts };
 import { IWallet } from '@ijstech/eth-wallet';
 export interface IDeployOptions {
     version?: string;
+    protocolRate?: string;
 }
 export interface IDeployResult {
     proxy: string;

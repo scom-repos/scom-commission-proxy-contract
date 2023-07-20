@@ -1512,7 +1512,7 @@ define("@scom/scom-commission-proxy-contract/contracts/index.ts", ["require", "e
     Object.defineProperty(exports, "ProxyV2", { enumerable: true, get: function () { return ProxyV2_1.ProxyV2; } });
     Object.defineProperty(exports, "ProxyV3", { enumerable: true, get: function () { return ProxyV3_1.ProxyV3; } });
 });
-define("@scom/scom-commission-proxy-contract", ["require", "exports", "@scom/scom-commission-proxy-contract/contracts/index.ts"], function (require, exports, Contracts) {
+define("@scom/scom-commission-proxy-contract", ["require", "exports", "@scom/scom-commission-proxy-contract/contracts/index.ts", "@ijstech/eth-wallet"], function (require, exports, Contracts, eth_wallet_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.onProgress = exports.deploy = exports.DefaultDeployOptions = exports.Contracts = void 0;
@@ -1521,7 +1521,8 @@ define("@scom/scom-commission-proxy-contract", ["require", "exports", "@scom/sco
     ;
     var progressHandler;
     exports.DefaultDeployOptions = {
-        version: 'V1'
+        version: 'V3',
+        protocolRate: '0.01'
     };
     function progress(msg) {
         if (typeof (progressHandler) == 'function') {
@@ -1532,14 +1533,21 @@ define("@scom/scom-commission-proxy-contract", ["require", "exports", "@scom/sco
     async function deploy(wallet, options) {
         progress('Contracts deployment start');
         let proxy;
-        if (options.version == 'V2') {
-            proxy = new Contracts.ProxyV2(wallet);
+        if (options.version == 'V3') {
+            proxy = new Contracts.ProxyV3(wallet);
+            progress('Deploy Proxy');
+            await proxy.deploy(eth_wallet_1.Utils.toDecimals(options.protocolRate, 6));
         }
         else {
-            proxy = new Contracts.Proxy(wallet);
+            if (options.version == 'V2') {
+                proxy = new Contracts.ProxyV2(wallet);
+            }
+            else {
+                proxy = new Contracts.Proxy(wallet);
+            }
+            progress('Deploy Proxy');
+            await proxy.deploy();
         }
-        progress('Deploy Proxy');
-        await proxy.deploy();
         progress('Proxy deployed ' + proxy.address);
         progress('Contracts deployment finished');
         return {
