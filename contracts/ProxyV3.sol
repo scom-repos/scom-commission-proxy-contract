@@ -34,8 +34,8 @@ contract ProxyV3 is Authorization {
         bytes24[] targetAndSelectors;
         mapping(bytes24 => bool) isTargetAndSelector;
         // token == 0 for native toekn
-        bool acceptAnyInToken;
-        bool acceptAnyOutToken;
+        bool acceptAnyInToken; // if set to false, either rate/feeOnProjectOwner has to be set
+        bool acceptAnyOutToken; // save as above
         IERC20[] inTokens;
         IERC20[] outTokens;
         mapping(IERC20 => bool) directTransferInToken;
@@ -405,42 +405,45 @@ contract ProxyV3 is Authorization {
     //     delete validReferrer[id][referrer];
     // }
 
-    function addToDistributions(Campaign storage campaign, uint256 campaignId, CommissionTokenConfig storage tokenConfig, address claimant, IERC20 token, uint256 amount) internal {
-        uint256 projectId = campaign.projectId;
-        amount = amount * tokenConfig.rate / 1e6; // amount is commission from now on
-        require(amount <= tokenConfig.capPerTransaction, "cap exceeded");
-        uint256 protocolFee = amount * protocolRate / 1e6;
-        protocolFeeBalance[token] += protocolFee;
+    function addToDistributions(Campaign storage campaign, uint256 campaignId, address claimant, bool isTokenIn, IERC20 token, uint256 amount) internal {
+        CommissionTokenConfig storage tokenConfig = isTokenIn ? campaign.commissionInTokenConfig[token] : campaign.commissionOutTokenConfig[token];
+        if (tokenConfig.rate > 0) {
+            uint256 projectId = campaign.projectId;
+            amount = amount * tokenConfig.rate / 1e6; // amount is commission from now on
+            require(amount <= tokenConfig.capPerTransaction, "cap exceeded");
+            uint256 protocolFee = amount * protocolRate / 1e6;
+            protocolFeeBalance[token] += protocolFee;
 
-        uint256 claimantAmount;
-        uint256 projectOwnerAmount;
-        if (tokenConfig.feeOnProjectOwner){
-            claimantAmount = amount;
-            projectOwnerAmount = amount + protocolFee;
-        } else {
-            claimantAmount = amount - protocolFee;
-            projectOwnerAmount = amount;
-        }
+            uint256 claimantAmount;
+            uint256 projectOwnerAmount;
+            if (tokenConfig.feeOnProjectOwner){
+                claimantAmount = amount;
+                projectOwnerAmount = amount + protocolFee;
+            } else {
+                claimantAmount = amount - protocolFee;
+                projectOwnerAmount = amount;
+            }
 
-        require(projectOwnerAmount <= stakesBalance[projectId][token], "not enough commission");
-        unchecked { stakesBalance[projectId][token] -= projectOwnerAmount; }
-        campaignAccumulatedCommission[campaignId][token] += projectOwnerAmount;
-        require(campaignAccumulatedCommission[campaignId][token] <= tokenConfig.capPerCampaign, "accumulated commission exceeded limit");
+            require(projectOwnerAmount <= stakesBalance[projectId][token], "not enough commission");
+            unchecked { stakesBalance[projectId][token] -= projectOwnerAmount; }
+            campaignAccumulatedCommission[campaignId][token] += projectOwnerAmount;
+            require(campaignAccumulatedCommission[campaignId][token] <= tokenConfig.capPerCampaign, "accumulated commission exceeded limit");
 
-        uint256 claimantId = claimantIds[claimant][token];
-        if (claimantId == 0) {
-            ++claimantIdCount;
-            claimantsInfo[claimantIdCount] = ClaimantInfo({
-                claimant: claimant,
-                token: token,
-                balance: claimantAmount
-            });
-            claimantIds[claimant][token] = claimantIdCount;
+            uint256 claimantId = claimantIds[claimant][token];
+            if (claimantId == 0) {
+                ++claimantIdCount;
+                claimantsInfo[claimantIdCount] = ClaimantInfo({
+                    claimant: claimant,
+                    token: token,
+                    balance: claimantAmount
+                });
+                claimantIds[claimant][token] = claimantIdCount;
+            }
+            else {
+                claimantsInfo[claimantId].balance += claimantAmount;
+            }
+            emit AddCommission(claimant, token, claimantAmount, claimantsInfo[claimantId].balance, protocolFee, protocolFeeBalance[token]);
         }
-        else {
-            claimantsInfo[claimantId].balance += claimantAmount;
-        }
-        emit AddCommission(claimant, token, claimantAmount, claimantsInfo[claimantId].balance, protocolFee, protocolFeeBalance[token]);
     }
     function getClaimantBalance(address claimant, IERC20 token) external view returns (uint256) {
         uint256 claimantId = claimantIds[claimant][token];
@@ -460,25 +463,29 @@ contract ProxyV3 is Authorization {
         }
     }
 
-    function proxyCall(uint256 campaignId, address target, TokensIn[] memory tokensIn, address to, IERC20[] memory tokensOut, address referrer, bytes memory data) payable external {
+    function proxyCall(uint256 campaignId, address target, bytes memory data, address referrer, address to, TokensIn[] memory tokensIn, IERC20[] memory tokensOut) payable external {
         require(campaignId < campaigns.length, "invalid campaign");
         Campaign storage campaign = campaigns[campaignId];
         require(campaign.isTargetAndSelector[bytes24(abi.encodePacked(target,bytes4(data)))], "selector not matched");
         require(campaign.startDate <= block.timestamp && block.timestamp <= campaign.endDate, "campaign not started yet / already ended");
         require(!campaign.referrersRequireApproval || (campaign.referrers.length > 0 && campaign.referrers[campaign.referrersInv[referrer]] == referrer), "not a referrer");
 
+        {
         uint ethAmount;
-
         uint256 length = tokensIn.length;
         require(length <= campaign.maxInputTokensInEachCall, "inToken length exceeded");
         uint256 i;
-
         while (i < length){
             IERC20 inToken = tokensIn[i].token;
-            CommissionTokenConfig storage tokenConfig = campaign.commissionInTokenConfig[inToken];
+            if (i > 0) {
+                require(address(inToken) > address(tokensIn[i-1].token), "in token not in ascending order");
+            }
+            // check if it is an accepted token
             if (!campaign.acceptAnyInToken){
+                CommissionTokenConfig storage tokenConfig = campaign.commissionInTokenConfig[inToken];
                 require(tokenConfig.rate > 0 || tokenConfig.feeOnProjectOwner, "not an accepted tokens");
             }
+            // transfer ETH / token to target
             uint256 amount = tokensIn[i].amount;
             if (address(inToken) == address(0)) {
                 require(ethAmount == 0, "more than one ETH transfer");
@@ -495,15 +502,9 @@ contract ProxyV3 is Authorization {
                 }
             }
             emit TransferForward(target, inToken, msg.sender, amount);
-
-            // deduct from stakes
-            if (tokenConfig.rate > 0) {
-                addToDistributions(campaign, campaignId, tokenConfig, referrer, inToken, amount); 
-            }
-
             unchecked { i++; }
         }
-
+        // call target
         assembly {
             let ret := call(gas(), target, ethAmount, add(0x20,data), mload(data), 0, 0)
             // returndatacopy(0, 0, returndatasize())
@@ -512,30 +513,54 @@ contract ProxyV3 is Authorization {
                 revert(0, returndatasize())
             }
         }
+        }
 
+        {
         // transfer token back
-        length = tokensOut.length;
+        uint256 length = tokensOut.length;
         require(length <= campaign.maxOutputTokensInEachCall, "outToken length exceeded");
-        i = 0;
+        uint256 i;
+        uint256 j;
         while (i < length) {
             IERC20 outToken = tokensOut[i];
-            CommissionTokenConfig storage tokenConfig = campaign.commissionOutTokenConfig[outToken];
-            if (!campaign.acceptAnyInToken){
+            if (i > 0) {
+                require(address(outToken) > address(tokensOut[i-1]), "in token not in ascending order");
+            }
+            // check if it is an accepted token
+            if (!campaign.acceptAnyOutToken){
+                CommissionTokenConfig storage tokenConfig = campaign.commissionOutTokenConfig[outToken];
                 require(tokenConfig.rate > 0 || tokenConfig.feeOnProjectOwner, "not an accepted tokens");
             }
-            uint256 amount;
+            uint256 amountBack;
             if (address(outToken) == address(0)) {
-                amount = address(this).balance - lastBalance[IERC20(address(0))];
-                _safeTransferETH(to, amount);
+                amountBack = address(this).balance - lastBalance[IERC20(address(0))];
+                _safeTransferETH(to, amountBack);
             } else {
-                amount = outToken.balanceOf(address(this)) - lastBalance[outToken];
-                outToken.safeTransfer(to, amount);
+                amountBack = outToken.balanceOf(address(this)) - lastBalance[outToken];
+                outToken.safeTransfer(to, amountBack);
             }
-            if (tokenConfig.rate > 0) {
-                addToDistributions(campaign, campaignId, tokenConfig, referrer, outToken, amount); 
+
+            // commissions
+            // deduct transfer back amount from input
+            while (j < tokensIn.length && address(tokensIn[j].token) < address(outToken)) {
+                addToDistributions(campaign, campaignId, referrer, true, tokensIn[j].token, tokensIn[j].amount); 
+                unchecked { j++; }
             }
-            emit TransferBack(target, outToken, to, amount);
+            if (j < tokensIn.length && address(tokensIn[j].token) == address(outToken)) {
+                addToDistributions(campaign, campaignId, referrer, true, tokensIn[j].token, tokensIn[j].amount-amountBack); 
+                unchecked { j++; }
+            }
+
+            addToDistributions(campaign, campaignId, referrer, false, outToken, amountBack); 
+
+            emit TransferBack(target, outToken, to, amountBack);
             unchecked { i++; }
+        }
+        // rest of tokens input
+        while (j < tokensIn.length) {
+            addToDistributions(campaign, campaignId, referrer, true, tokensIn[j].token, tokensIn[j].amount); 
+            unchecked { j++; }
+        }        
         }
         assembly {
             returndatacopy(0, 0, returndatasize())

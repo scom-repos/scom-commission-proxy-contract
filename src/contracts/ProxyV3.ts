@@ -8,7 +8,7 @@ export interface IGetCampaignArrayData1Params {campaignId:number|BigNumber;targe
 export interface IGetCampaignArrayData2Params {campaignId:number|BigNumber;inTokensStart:number|BigNumber;inTokensLength:number|BigNumber;outTokensStart:number|BigNumber;outTokensLength:number|BigNumber}
 export interface IGetClaimantBalanceParams {claimant:string;token:string}
 export interface IGetClaimantsInfoParams {fromId:number|BigNumber;count:number|BigNumber}
-export interface IProxyCallParams {campaignId:number|BigNumber;target:string;tokensIn:{token:string,amount:number|BigNumber}[];to:string;tokensOut:string[];referrer:string;data:string}
+export interface IProxyCallParams {campaignId:number|BigNumber;target:string;data:string;referrer:string;to:string;tokensIn:{token:string,amount:number|BigNumber}[];tokensOut:string[]}
 export interface IRemoveProjectAdminParams {projectId:number|BigNumber;admin:string}
 export interface IStakeParams {projectId:number|BigNumber;token:string;amount:number|BigNumber}
 export interface IStakeMultipleParams {projectId:number|BigNumber;token:string[];amount:(number|BigNumber)[]}
@@ -736,7 +736,7 @@ export class ProxyV3 extends _Contract{
             call:permit_call
             , txData:permit_txData
         });
-        let proxyCallParams = (params: IProxyCallParams) => [this.wallet.utils.toString(params.campaignId),params.target,params.tokensIn.map(e=>([e.token,this.wallet.utils.toString(e.amount)])),params.to,params.tokensOut,params.referrer,this.wallet.utils.stringToBytes(params.data)];
+        let proxyCallParams = (params: IProxyCallParams) => [this.wallet.utils.toString(params.campaignId),params.target,this.wallet.utils.stringToBytes(params.data),params.referrer,params.to,params.tokensIn.map(e=>([e.token,this.wallet.utils.toString(e.amount)])),params.tokensOut];
         let proxyCall_send = async (params: IProxyCallParams, options?: number|BigNumber|TransactionOptions): Promise<TransactionReceipt> => {
             let result = await this.send('proxyCall',proxyCallParams(params),options);
             return result;

@@ -799,14 +799,14 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
     export interface IProxyCallParams {
         campaignId: number | BigNumber;
         target: string;
+        data: string;
+        referrer: string;
+        to: string;
         tokensIn: {
             token: string;
             amount: number | BigNumber;
         }[];
-        to: string;
         tokensOut: string[];
-        referrer: string;
-        data: string;
     }
     export interface IRemoveProjectAdminParams {
         projectId: number | BigNumber;
