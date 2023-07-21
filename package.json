@@ -1,6 +1,6 @@
 {
     "name": "@scom/scom-commission-proxy-contract",
-    "version": "0.1.5",
+    "version": "0.1.6",
     "main": "lib/index.js",
     "types": "types/index.d.ts",
     "plugin": "dist/index.js",
