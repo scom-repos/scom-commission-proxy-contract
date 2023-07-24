@@ -456,7 +456,7 @@ describe('proxy', function () {
         assertEqual(balance, Utils.toDecimals("0.001"));
 
         balance = await wallet.balanceOf(trader);
-        assertEqual(balance.toFixed(2), "9992.54"); // 10000 - 10 + (1000/400) - gas fee*3
+        assertEqual(balance, "9992.541714231236"); // 10000 - 10 + (1000/400) - gas fee*3
 
         wallet.defaultAccount = referrer1;
         balance = await proxy.getClaimantBalance({
@@ -488,7 +488,7 @@ describe('proxy', function () {
         let campaign = {
             projectId: projectId,
             maxInputTokensInEachCall: 1,
-            maxOutputTokensInEachCall: 1,
+            maxOutputTokensInEachCall: 2,
             referrersRequireApproval: true,
             startDate: now,
             endDate: now + (30*24*60*60),
@@ -503,14 +503,14 @@ describe('proxy', function () {
                 {
                     rate: Utils.toDecimals("0.01", 6),
                     feeOnProjectOwner: false,
-                    capPerTransaction: Utils.toDecimals(10, await busd.decimals),
-                    capPerCampaign: Utils.toDecimals(1000, await busd.decimals)
+                    capPerTransaction: Utils.toDecimals("10.01", await busd.decimals),
+                    capPerCampaign: Utils.toDecimals(1001, await busd.decimals)
                 },
                 {
                     rate: Utils.toDecimals("0.01", 6),
                     feeOnProjectOwner: false,
-                    capPerTransaction: Utils.toDecimals("0.1"),
-                    capPerCampaign: Utils.toDecimals(1)
+                    capPerTransaction: Utils.toDecimals("10"),
+                    capPerCampaign: Utils.toDecimals("10")
                 }
             ],
             referrers: [referrer1]
@@ -546,16 +546,16 @@ describe('proxy', function () {
     });
     it('ETH to token', async function () {
         let amountIn = 0.25;
+        let amountOutInWei = Utils.toDecimals(amountIn*ETH_PRICE_USD); // 0.25*4000=1000
         let decimals = 18;
-        let amountInWei = Utils.toDecimals(amountIn, decimals);
+        let amountInWei = Utils.toDecimals(amountIn, decimals).times(100);
 
         wallet.defaultAccount = trader;
         let now = parseInt((await wallet.getBlock()).timestamp.toString());
 
         let to = trader;
-        let data = await oswapContracts.oracleRouter.swapExactETHForTokens.txData({
-            // amountIn: amountInWei,
-            amountOutMin: 0,
+        let data = await oswapContracts.oracleRouter.swapETHForExactTokens.txData({
+            amountOut: amountOutInWei,
             path: [weth.address, busd.address],
             to: proxy.address, //to, // trader
             deadline: now + 1000,
@@ -572,7 +572,7 @@ describe('proxy', function () {
                 amount: amountInWei
             }
         ];
-        let tokensOut = [busd.address];
+        let tokensOut = [Utils.nullAddress, busd.address];// Utils.nullAddress
 
         let receipt = await proxy.proxyCall({ referrer, campaignId, target, tokensIn, to, tokensOut, data }, amountInWei);
         // print(receipt);
@@ -586,11 +586,11 @@ describe('proxy', function () {
         assertEqual(balance, Utils.toDecimals("9.9"));
 
         balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:busd.address});
-        assertEqual(balance, Utils.toDecimals("10"));
+        assertEqual(balance, Utils.toDecimals("10.00000000000000008"));
         balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:Utils.nullAddress});
         assertEqual(balance, Utils.toDecimals("0"));
         balance = await proxy.stakesBalance({param1: projectId, param2: busd.address});
-        assertEqual(balance, Utils.toDecimals("969.8")); // 979.8 - 10
+        assertEqual(balance, Utils.toDecimals("969.79999999999999992")); // 979.8 - 10 // 969.799999999999999920
         balance = await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress});
         assertEqual(balance, Utils.toDecimals("9.899"));
         balance = await proxy.protocolFeeBalance(busd.address);
@@ -599,14 +599,16 @@ describe('proxy', function () {
         assertEqual(balance, Utils.toDecimals("0.001"));
         
         balance = await busd.balanceOf(trader);
-        assertEqual(balance, "6960.396039603960396039"); // 4960.396039603960396039 + 2000
+        assertEqual(balance, "6960.396039603960404039"); // 4960.396039603960396039 + 2000
+        balance = await wallet.balanceOf(trader);
+        assertEqual(balance, "9992.291054841236"); // 10000 - 10 + (1000/400) - 0.25  - gas fee*4
 
         wallet.defaultAccount = referrer1;
         balance = await proxy.getClaimantBalance({
             claimant: referrer1,
             token: busd.address
         });
-        assertEqual(balance, Utils.toDecimals("9.9"));
+        assertEqual(balance, Utils.toDecimals("9.90000000000000008"));
         balance = await proxy.getClaimantBalance({
             claimant: referrer1,
             token: Utils.nullAddress
@@ -615,10 +617,10 @@ describe('proxy', function () {
 
         await proxy.claim(busd.address);
         balance = await busd.balanceOf(referrer1);
-        assertEqual(balance, "29.9");
+        assertEqual(balance, "29.90000000000000008");
 
         balance = await proxy.lastBalance(busd.address);
-        assertEqual(balance, Utils.toDecimals("970.1"));
+        assertEqual(balance, Utils.toDecimals("970.09999999999999992"));
         balance = await proxy.lastBalance(Utils.nullAddress);
         assertEqual(balance, Utils.toDecimals("9.9"));
     });
@@ -626,17 +628,17 @@ describe('proxy', function () {
         let amountIn = 40000
         let decimals = await busd.decimals;
         let amountInWei = Utils.toDecimals(amountIn, decimals);
+        let amountOutInWei = Utils.toDecimals(amountIn/ETH_PRICE_USD);
 
         wallet.defaultAccount = admin;
-        await busd.mint({ address: trader, amount: amountIn * 2 });
+        await busd.mint({ address: trader, amount: amountIn * 10 });
 
         wallet.defaultAccount = trader;
         let now = parseInt((await wallet.getBlock()).timestamp.toString());
-
         let to = trader;
-        let data = await oswapContracts.oracleRouter.swapExactTokensForETH.txData({
-            amountIn: amountInWei,
-            amountOutMin: 0,
+        let data = await oswapContracts.oracleRouter.swapTokensForExactETH.txData({
+            amountOut: amountOutInWei,
+            amountInMax: amountInWei.times(10),
             path: [busd.address, weth.address],
             to: proxy.address, //to, // trader,
             useOracle: [true],
@@ -650,12 +652,12 @@ describe('proxy', function () {
         let tokensIn = [
             {
                 token: busd.address,
-                amount: Utils.toDecimals(amountIn, decimals)
+                amount: amountInWei.times(10)
             }
         ];
-        let tokensOut = [Utils.nullAddress];
+        let tokensOut = [Utils.nullAddress,busd.address];
 
-        await busd.approve({ spender: proxy.address, amount: amountIn * 2 });
+        await busd.approve({ spender: proxy.address, amount: amountIn * 10 });
         let receipt = await proxy.proxyCall({ referrer, campaignId, target, tokensIn, to, tokensOut, data });
         // print(receipt);
         print(proxy.parseTransferForwardEvent(receipt));
@@ -663,16 +665,16 @@ describe('proxy', function () {
         print(proxy.parseAddCommissionEvent(receipt));
 
         let balance = await proxy.lastBalance(busd.address);
-        assertEqual(balance, Utils.toDecimals("970.1"));
+        assertEqual(balance, Utils.toDecimals("970.099999999999999920"));
         balance = await proxy.lastBalance(Utils.nullAddress);
         assertEqual(balance, Utils.toDecimals("9.9"));
 
         balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:busd.address});
-        assertEqual(balance, Utils.toDecimals("10"));
+        assertEqual(balance, Utils.toDecimals("10.00000000000000008"));
         balance = await proxy.campaignAccumulatedCommission({param1:campaignId,param2:Utils.nullAddress});
         assertEqual(balance, Utils.toDecimals("0.1"));
         balance = await proxy.stakesBalance({param1: projectId, param2: busd.address});
-        assertEqual(balance, Utils.toDecimals("969.8"));
+        assertEqual(balance, Utils.toDecimals("969.79999999999999992"));
         balance = await proxy.stakesBalance({param1: projectId, param2: Utils.nullAddress});
         assertEqual(balance, Utils.toDecimals("9.799")); // 9.899 - 0.1
         balance = await proxy.protocolFeeBalance(busd.address);
@@ -681,7 +683,7 @@ describe('proxy', function () {
         assertEqual(balance, Utils.toDecimals("0.002"));
 
         balance = await wallet.balanceOf(trader);
-        assertEqual(balance.toFixed(2), "10002.29"); // 10000 - 10 + (1000/400) -0.25 + (40000/4000) - gas fee*4
+        assertEqual(balance, "10002.290255341235"); // 10000 - 10 + (1000/400) - 0.25 + (40000/4000) - gas fee*4
 
         wallet.defaultAccount = referrer1;
         balance = await proxy.getClaimantBalance({
@@ -692,10 +694,10 @@ describe('proxy', function () {
 
         await proxy.claim(Utils.nullAddress);
         balance = await wallet.balanceOf(referrer1);
-        assertEqual(balance, "10000.198466838"); // 10000.099 + 0.025 - gas fee
+        assertEqual(balance, "10000.198467058"); // 10000.099 + 0.025 - gas fee
 
         balance = await proxy.lastBalance(busd.address);
-        assertEqual(balance, Utils.toDecimals("970.1"));
+        assertEqual(balance, Utils.toDecimals("970.09999999999999992"));
         balance = await proxy.lastBalance(Utils.nullAddress);
         assertEqual(balance, Utils.toDecimals("9.801"));
     });
