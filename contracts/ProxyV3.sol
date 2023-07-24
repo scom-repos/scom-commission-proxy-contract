@@ -549,9 +549,9 @@ contract ProxyV3 is Authorization {
             if (j < tokensIn.length && address(tokensIn[j].token) == address(outToken)) {
                 addToDistributions(campaign, campaignId, referrer, true, tokensIn[j].token, tokensIn[j].amount-amountBack); 
                 unchecked { j++; }
+            } else {
+                addToDistributions(campaign, campaignId, referrer, false, outToken, amountBack); 
             }
-
-            addToDistributions(campaign, campaignId, referrer, false, outToken, amountBack); 
 
             emit TransferBack(target, outToken, to, amountBack);
             unchecked { i++; }
