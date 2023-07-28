@@ -148,6 +148,9 @@ contract ProxyV3 is Authorization {
     function getProjectAdminsLength(uint256 projectId) external view returns (uint256 length) {
         length = projects[projectId].projectAdmins.length;
     }
+    function getCampaignsLength() external view returns (uint256 length) {
+        length = campaigns.length;
+    }
     function transferProjectOwnership(uint256 projectId, address newOwner) external {
         Project storage project = projects[projectId];
         require(msg.sender == project.owner, "not from owner");

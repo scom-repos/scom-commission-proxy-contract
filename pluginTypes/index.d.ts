@@ -990,6 +990,9 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
                 referrersLength: BigNumber;
             }>;
         };
+        getCampaignsLength: {
+            (options?: TransactionOptions): Promise<BigNumber>;
+        };
         getClaimantBalance: {
             (params: IGetClaimantBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
         };

@@ -231,6 +231,9 @@ export declare class ProxyV3 extends _Contract {
             referrersLength: BigNumber;
         }>;
     };
+    getCampaignsLength: {
+        (options?: TransactionOptions): Promise<BigNumber>;
+    };
     getClaimantBalance: {
         (params: IGetClaimantBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
     };

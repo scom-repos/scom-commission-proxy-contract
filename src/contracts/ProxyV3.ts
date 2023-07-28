@@ -295,6 +295,9 @@ export class ProxyV3 extends _Contract{
     getCampaignArrayLength: {
         (campaignId:number|BigNumber, options?: TransactionOptions): Promise<{targetAndSelectorsLength:BigNumber,inTokensLength:BigNumber,outTokensLength:BigNumber,referrersLength:BigNumber}>;
     }
+    getCampaignsLength: {
+        (options?: TransactionOptions): Promise<BigNumber>;
+    }
     getClaimantBalance: {
         (params: IGetClaimantBalanceParams, options?: TransactionOptions): Promise<BigNumber>;
     }
@@ -526,6 +529,11 @@ export class ProxyV3 extends _Contract{
             };
         }
         this.getCampaignArrayLength = getCampaignArrayLength_call
+        let getCampaignsLength_call = async (options?: TransactionOptions): Promise<BigNumber> => {
+            let result = await this.call('getCampaignsLength',[],options);
+            return new BigNumber(result);
+        }
+        this.getCampaignsLength = getCampaignsLength_call
         let getClaimantBalanceParams = (params: IGetClaimantBalanceParams) => [params.claimant,params.token];
         let getClaimantBalance_call = async (params: IGetClaimantBalanceParams, options?: TransactionOptions): Promise<BigNumber> => {
             let result = await this.call('getClaimantBalance',getClaimantBalanceParams(params),options);
