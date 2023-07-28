@@ -1010,6 +1010,9 @@ declare module "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts" {
         getProjectAdminsLength: {
             (projectId: number | BigNumber, options?: TransactionOptions): Promise<BigNumber>;
         };
+        getProjectsLength: {
+            (options?: TransactionOptions): Promise<BigNumber>;
+        };
         isPermitted: {
             (param1: string, options?: TransactionOptions): Promise<boolean>;
         };

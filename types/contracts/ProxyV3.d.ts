@@ -251,6 +251,9 @@ export declare class ProxyV3 extends _Contract {
     getProjectAdminsLength: {
         (projectId: number | BigNumber, options?: TransactionOptions): Promise<BigNumber>;
     };
+    getProjectsLength: {
+        (options?: TransactionOptions): Promise<BigNumber>;
+    };
     isPermitted: {
         (param1: string, options?: TransactionOptions): Promise<boolean>;
     };

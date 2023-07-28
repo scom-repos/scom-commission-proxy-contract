@@ -307,6 +307,9 @@ export class ProxyV3 extends _Contract{
     getProjectAdminsLength: {
         (projectId:number|BigNumber, options?: TransactionOptions): Promise<BigNumber>;
     }
+    getProjectsLength: {
+        (options?: TransactionOptions): Promise<BigNumber>;
+    }
     isPermitted: {
         (param1:string, options?: TransactionOptions): Promise<boolean>;
     }
@@ -555,6 +558,11 @@ export class ProxyV3 extends _Contract{
             return new BigNumber(result);
         }
         this.getProjectAdminsLength = getProjectAdminsLength_call
+        let getProjectsLength_call = async (options?: TransactionOptions): Promise<BigNumber> => {
+            let result = await this.call('getProjectsLength',[],options);
+            return new BigNumber(result);
+        }
+        this.getProjectsLength = getProjectsLength_call
         let isPermitted_call = async (param1:string, options?: TransactionOptions): Promise<boolean> => {
             let result = await this.call('isPermitted',[param1],options);
             return result;

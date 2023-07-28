@@ -142,6 +142,9 @@ contract ProxyV3 is Authorization {
         projectAdmins = new address[](project.projectAdmins.length);
         projectAdmins = project.projectAdmins;
     }
+    function getProjectsLength() external view returns (uint256 length) {
+        length = projects.length;
+    }
     function getProjectAdminsLength(uint256 projectId) external view returns (uint256 length) {
         length = projects[projectId].projectAdmins.length;
     }
