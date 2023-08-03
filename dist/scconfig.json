@@ -1,0 +1,9 @@
+{
+    "name": "@scom/scom-commission-proxy-contract",
+    "type": "contract",
+    "version": "0.1.9",
+    "dependencies": [
+        "@ijstech/eth-contract",
+        "@ijstech/eth-wallet"
+    ]
+}
