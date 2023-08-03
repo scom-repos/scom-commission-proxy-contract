@@ -1,3 +1,4 @@
+/// <reference path="@ijstech/eth-wallet/index.d.ts" />
 /// <amd-module name="@scom/scom-commission-proxy-contract/contracts/Authorization.json.ts" />
 declare module "@scom/scom-commission-proxy-contract/contracts/Authorization.json.ts" {
     const _default: {
@@ -1314,11 +1315,46 @@ declare module "@scom/scom-commission-proxy-contract/contracts/index.ts" {
     export { ProxyV2 } from "@scom/scom-commission-proxy-contract/contracts/ProxyV2.ts";
     export { ProxyV3 } from "@scom/scom-commission-proxy-contract/contracts/ProxyV3.ts";
 }
+/// <amd-module name="@scom/scom-commission-proxy-contract/utils.ts" />
+declare module "@scom/scom-commission-proxy-contract/utils.ts" {
+    import { IRpcWallet } from "@ijstech/eth-wallet";
+    const getProxyCampaign: (wallet: IRpcWallet, proxyAddress: string, campaignId: number) => Promise<{
+        projectId: import("@ijstech/eth-wallet").BigNumber;
+        maxInputTokensInEachCall: import("@ijstech/eth-wallet").BigNumber;
+        maxOutputTokensInEachCall: import("@ijstech/eth-wallet").BigNumber;
+        referrersRequireApproval: boolean;
+        startDate: import("@ijstech/eth-wallet").BigNumber;
+        endDate: import("@ijstech/eth-wallet").BigNumber;
+        targetAndSelectors: string[];
+        acceptAnyInToken: boolean;
+        acceptAnyOutToken: boolean;
+        inTokens: string[];
+        directTransferInToken: boolean[];
+        commissionInTokenConfig: {
+            rate: import("@ijstech/eth-wallet").BigNumber;
+            feeOnProjectOwner: boolean;
+            capPerTransaction: import("@ijstech/eth-wallet").BigNumber;
+            capPerCampaign: import("@ijstech/eth-wallet").BigNumber;
+        }[];
+        outTokens: string[];
+        commissionOutTokenConfig: {
+            rate: import("@ijstech/eth-wallet").BigNumber;
+            feeOnProjectOwner: boolean;
+            capPerTransaction: import("@ijstech/eth-wallet").BigNumber;
+            capPerCampaign: import("@ijstech/eth-wallet").BigNumber;
+        }[];
+        referrers: string[];
+    }>;
+    const getCommissionRate: (wallet: IRpcWallet, proxyAddress: string, campaignId: number) => Promise<string>;
+    export { getProxyCampaign, getCommissionRate };
+}
 /// <amd-module name="@scom/scom-commission-proxy-contract" />
 declare module "@scom/scom-commission-proxy-contract" {
     import * as Contracts from "@scom/scom-commission-proxy-contract/contracts/index.ts";
     export { Contracts };
     import { IWallet } from '@ijstech/eth-wallet';
+    import * as ContractUtils from "@scom/scom-commission-proxy-contract/utils.ts";
+    export { ContractUtils };
     export interface IDeployOptions {
         version?: string;
         protocolRate?: string;

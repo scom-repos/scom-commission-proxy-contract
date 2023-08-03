@@ -1524,11 +1524,38 @@ define("@scom/scom-commission-proxy-contract/contracts/index.ts", ["require", "e
     Object.defineProperty(exports, "ProxyV2", { enumerable: true, get: function () { return ProxyV2_1.ProxyV2; } });
     Object.defineProperty(exports, "ProxyV3", { enumerable: true, get: function () { return ProxyV3_1.ProxyV3; } });
 });
-define("@scom/scom-commission-proxy-contract", ["require", "exports", "@scom/scom-commission-proxy-contract/contracts/index.ts", "@ijstech/eth-wallet"], function (require, exports, Contracts, eth_wallet_1) {
+define("@scom/scom-commission-proxy-contract/utils.ts", ["require", "exports", "@scom/scom-commission-proxy-contract/contracts/index.ts"], function (require, exports, Contracts) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.onProgress = exports.deploy = exports.DefaultDeployOptions = exports.Contracts = void 0;
+    exports.getCommissionRate = exports.getProxyCampaign = void 0;
+    const getProxyCampaign = async (wallet, proxyAddress, campaignId) => {
+        const proxy = new Contracts.ProxyV3(wallet, proxyAddress);
+        const campaign = await proxy.getCampaign({
+            campaignId,
+            returnArrays: true
+        });
+        return campaign;
+    };
+    exports.getProxyCampaign = getProxyCampaign;
+    const getCommissionRate = async (wallet, proxyAddress, campaignId) => {
+        const campaign = await getProxyCampaign(wallet, proxyAddress, campaignId);
+        let rate = '0';
+        if (campaign.commissionInTokenConfig.length > 0) {
+            rate = campaign.commissionInTokenConfig[0].rate.toFixed();
+        }
+        else if (campaign.commissionOutTokenConfig.length > 0) {
+            rate = campaign.commissionOutTokenConfig[0].rate.toFixed();
+        }
+        return rate;
+    };
+    exports.getCommissionRate = getCommissionRate;
+});
+define("@scom/scom-commission-proxy-contract", ["require", "exports", "@scom/scom-commission-proxy-contract/contracts/index.ts", "@ijstech/eth-wallet", "@scom/scom-commission-proxy-contract/utils.ts"], function (require, exports, Contracts, eth_wallet_1, ContractUtils) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.onProgress = exports.deploy = exports.DefaultDeployOptions = exports.ContractUtils = exports.Contracts = void 0;
     exports.Contracts = Contracts;
+    exports.ContractUtils = ContractUtils;
     ;
     ;
     var progressHandler;
